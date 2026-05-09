@@ -6,9 +6,11 @@ cursor = conn.cursor()
 
 cursor.execute("""CREATE TABLE IF NOT EXISTS scans (
                id INTEGER PRIMARY KEY AUTOINCREMENT,
-               status TEXT,
-               risque TEXT
-               )"""
+               host TEXT,
+               ports TEXT,
+               risque TEXT,
+               score INTEGER,
+               date_scan TEXT)"""
 )
 
 conn.commit()
