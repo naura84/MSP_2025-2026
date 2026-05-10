@@ -11,6 +11,6 @@ def report():
 
     return FileResponse(
         path=pdf_path,
-        media_type='application/pdf',
-        filename='audit_report.pdf'
+        media_type='application/pdf', #type du fichier = pdf
+        filename='audit_report.pdf'  #nom du fichier
     )
