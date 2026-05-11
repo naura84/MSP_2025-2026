@@ -31,6 +31,7 @@ MSP_2025-2026/
 │   │   └── logs.py         # Logging
 │   └── services/           # Business logic
 │       ├── scanner.py      # Port scanning logic
+|       ├── nmap_scanner.py # Nmap service/version detection
 │       └── report_generator.py # PDF generation
 ├── frontend/               # Frontend application (placeholder)
 └── logs_analyzer/          # Logs analyzer (placeholder)
