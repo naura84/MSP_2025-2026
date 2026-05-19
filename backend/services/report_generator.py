@@ -1,7 +1,9 @@
 import sqlite3
 
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+from reportlab.platypus import Table, TableStyle
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib import colors
 
 def generate_report():
 
@@ -27,21 +29,42 @@ def generate_report():
     elements.append(Spacer(1, 20))
 
     for scan in scans:
+
         host, ports, risque, score, date_scan = scan
 
-        scan_info = f"""
-        <b>Hôte :</b> {host}<br/>
-        <b>Ports ouverts :</b> {ports}<br/>
-        <b>Risque :</b> {risque}<br/>
-        <b>Score de sécurité :</b> {score}<br/>
-        <b>Date de l'analyse :</b> {date_scan}<br/>
-        """
+        data = [
+        ["Hôte", host],
+        ["Ports ouverts", ports],
+        ["Risque", risque],
+        ["Score de sécurité", score],
+        ["Date de l'analyse", date_scan],
+        ]
 
-        paragraph = Paragraph(scan_info, styles['BodyText'])
-
-        elements.append(paragraph)
-        elements.append(Spacer(1, 20))
+        table = Table(data, colWidths=[150, 350])
     
+        table.setStyle(TableStyle([
+            # Style général
+            ("BACKGROUND", (0, 0), (-1, -1), colors.whitesmoke),
+            ("TEXTCOLOR", (0, 0), (-1, -1), colors.black),
+    
+            # Labels (colonne de gauche)
+            ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#031436")),  # bleu léger
+            ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#FFFFFF")),
+            ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
+    
+            # Bordures propres
+            ("GRID", (0, 0), (-1, -1), 0.5, colors.lightgrey),
+    
+            # Padding aéré
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+        ]))
+    
+        elements.append(table)
+        elements.append(Spacer(1, 15))
+        
     pdf.build(elements)
 
     return "audit_report.pdf"
