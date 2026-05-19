@@ -43,37 +43,29 @@ MSP_2025-2026/
 
 - Python 3.8 or higher
 - pip package manager
+- Nmap installed on the host system
 
 ### Backend Dependencies
 
 Install the required Python packages:
 
 ```bash
-# FastAPI framework
-pip install fastapi
-
-# ASGI server for running FastAPI
-pip install uvicorn
-
-# JWT token handling
-pip install python-jose[cryptography]
-
-# PDF report generation
-pip install reportlab
+pip install fastapi uvicorn python-jose[cryptography] python-nmap reportlab
 ```
 
-### Alternative: Using requirements.txt
+### Using `requirements.txt`
 
-Create a `requirements.txt` file in the backend directory with the following content:
+The project includes a top-level `requirements.txt` with the backend dependencies:
 
 ```
 fastapi
 uvicorn
 python-jose[cryptography]
+python-nmap
 reportlab
 ```
 
-Then install all dependencies:
+Then install all dependencies from the project root:
 
 ```bash
 pip install -r requirements.txt
@@ -110,10 +102,10 @@ Once the server is running, visit `http://127.0.0.1:8000/docs` for interactive A
 - `GET /scan?host={hostname}` - Perform security scan on a host
 
 ### Reports
-- `GET /report` - Generate PDF audit report
+- `GET /report` - Download generated PDF audit report
 
 ### History
-- `GET /history` - Get scan history
+- `GET /history` - Get scan history (requires `Authorization: Bearer <token>` header)
 
 ### Statistics
 - `GET /stats` - Get audit statistics
