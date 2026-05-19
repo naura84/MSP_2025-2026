@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+python-jose
+python-nmap
+reportlab
+requests
