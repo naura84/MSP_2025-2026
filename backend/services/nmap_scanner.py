@@ -1,4 +1,5 @@
 import nmap
+import sqlite3
 from datetime import datetime
 
 
@@ -59,7 +60,6 @@ def run_nmap_scan(host, ports_to_scan=None):
     print(f"[NMAP] Scanning {host} on ports {port_string}")
     
     try:
-        # -sV = version detection, -T4 = fast timing
         nm.scan(hosts=host, ports=port_string, arguments="-sV -T4")
         
         host_data = nm["scan"].get(host, {})
@@ -89,7 +89,6 @@ def run_nmap_scan(host, ports_to_scan=None):
                 "state": port_info.get("state", "unknown")
             }
             
-            # Check for known vulnerabilities
             vuln = check_version_vulnerability(
                 service_entry["service"],
                 service_entry["product"],
@@ -105,8 +104,28 @@ def run_nmap_scan(host, ports_to_scan=None):
             
             services_found.append(service_entry)
         
-        # Calculate risk
         risk_score, risk_level = calculate_risk_score(services_found, vulnerabilities_found)
+        
+        # Save to database
+        try:
+            conn = sqlite3.connect("audit.db")
+            cursor = conn.cursor()
+            
+            ports_ouverts = [s["port"] for s in services_found]
+            port_string_db = ",".join(map(str, ports_ouverts))
+            
+            cursor.execute(
+                """
+                INSERT INTO scans (host, ports, risque, score, date_scan)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (host, port_string_db, risk_level, risk_score, datetime.utcnow().isoformat())
+            )
+            
+            conn.commit()
+            conn.close()
+        except Exception as e:
+            print(f"[NMAP] Database save failed: {e}")
         
         return {
             "host": host,
@@ -160,7 +179,6 @@ def is_version_vulnerable(detected_version, max_safe_version):
     """Compare two version strings. Returns True if detected is older."""
     
     def parse_version(v):
-        """Extract numeric parts from version string."""
         parts = []
         for segment in v.strip().lstrip("vV").split("."):
             num = ""
@@ -175,7 +193,6 @@ def is_version_vulnerable(detected_version, max_safe_version):
     detected_parts = parse_version(detected_version)
     safe_parts = parse_version(max_safe_version)
     
-    # Pad to same length
     while len(detected_parts) < len(safe_parts):
         detected_parts.append(0)
     while len(safe_parts) < len(detected_parts):
@@ -198,12 +215,10 @@ def calculate_risk_score(services_found, vulnerabilities_found):
     
     score = 100
     
-    # -5 per open service
     for service in services_found:
         if not service.get("vulnerable", False):
             score -= 5
     
-    # Extra penalty per vulnerability
     severity_weights = {
         "critical": 25,
         "high": 15,
@@ -215,7 +230,6 @@ def calculate_risk_score(services_found, vulnerabilities_found):
         severity = vuln.get("vulnerability", {}).get("severity", "low")
         score -= severity_weights.get(severity, 5)
     
-    # Clamp between 0 and 100
     score = max(0, min(100, score))
     
     if score >= 80:
