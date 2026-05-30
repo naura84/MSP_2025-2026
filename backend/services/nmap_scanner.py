@@ -44,6 +44,43 @@ VULNERABLE_VERSIONS = {
 }
 
 
+def discover_hosts(network="192.168.1.0/24"):
+    """
+    Scan réseau pour trouver toutes les machines connectées.
+    Utilise un ping sweep Nmap (-sn).
+    
+    Args:
+        network: Plage réseau au format CIDR (ex: "192.168.1.0/24")
+    
+    Returns:
+        Liste des machines trouvées avec IP, hostname et état
+    """
+    print(f"[NMAP] Discovering hosts on {network}")
+    
+    nm = nmap.PortScanner()
+    
+    try:
+        nm.scan(hosts=network, arguments="-sn")
+        
+        hosts_found = []
+        for host in nm.all_hosts():
+            hosts_found.append({
+                "ip": host,
+                "hostname": nm[host].hostname() or "Inconnu",
+                "state": nm[host].state()
+            })
+        
+        print(f"[NMAP] Found {len(hosts_found)} machine(s) on the network")
+        return hosts_found
+    
+    except nmap.PortScannerError as e:
+        print(f"[NMAP] Discovery error: {e}")
+        return []
+    except Exception as e:
+        print(f"[NMAP] Unexpected error: {e}")
+        return []
+
+
 def run_nmap_scan(host, ports_to_scan=None):
     """
     Run Nmap scan with version detection on given ports.
