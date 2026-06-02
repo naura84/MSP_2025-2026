@@ -48,7 +48,7 @@ def generate_report():
             ("TEXTCOLOR", (0, 0), (-1, -1), colors.black),
     
             # Labels (colonne de gauche)
-            ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#031436")),  # bleu léger
+            ("BACKGROUND", (0, 0), (0, -1), colors.HexColor("#0E275A")),
             ("TEXTCOLOR", (0, 0), (0, -1), colors.HexColor("#FFFFFF")),
             ("FONTNAME", (0, 0), (0, -1), "Helvetica-Bold"),
     

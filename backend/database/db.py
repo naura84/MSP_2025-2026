@@ -10,7 +10,13 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS scans (
                ports TEXT,
                risque TEXT,
                score INTEGER,
-               date_scan TEXT)"""
+               date_scan TEXT,
+               service TEXT,
+               detected_version TEXT,
+               cve TEXT,
+               severity TEXT,
+               description TEXT
+               )"""
 )
 
 conn.commit()

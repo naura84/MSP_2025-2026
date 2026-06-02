@@ -56,9 +56,12 @@ def discover_hosts(network="192.168.1.0/24"):
         Liste des machines trouvées avec IP, hostname et état
     """
     print(f"[NMAP] Discovering hosts on {network}")
-    
-    nm = nmap.PortScanner()
-    
+
+    nm = get_port_scanner()
+    if nm is None:
+        print("[NMAP] Skipping discovery: nmap binary not available in PATH")
+        return []
+
     try:
         nm.scan(hosts=network, arguments="-sn")
         
@@ -92,10 +95,19 @@ def run_nmap_scan(host, ports_to_scan=None):
     
     port_string = ",".join(map(str, ports_to_scan))
     
-    nm = nmap.PortScanner()
-    
+    nm = get_port_scanner()
+
     print(f"[NMAP] Scanning {host} on ports {port_string}")
-    
+
+    if nm is None:
+        return {
+            "host": host,
+            "error": "Nmap program not found in PATH. Install Nmap and ensure nmap.exe is accessible.",
+            "scan_date": datetime.utcnow().isoformat(),
+            "services_found": [],
+            "vulnerabilities": []
+        }
+
     try:
         nm.scan(hosts=host, ports=port_string, arguments="-sV -T4")
         
@@ -153,10 +165,10 @@ def run_nmap_scan(host, ports_to_scan=None):
             
             cursor.execute(
                 """
-                INSERT INTO scans (host, ports, risque, score, date_scan)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO scans (host, ports, risque, score, date_scan, service, detected_version, cve, severity, description)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (host, port_string_db, risk_level, risk_score, datetime.utcnow().isoformat())
+                (host, port_string_db, risk_level, risk_score, datetime.utcnow().isoformat(), service_entry["service"], service_entry["version"], vuln["cve"], vuln["severity"], vuln["description"])
             )
             
             conn.commit()
@@ -210,6 +222,28 @@ def check_version_vulnerability(service_name, product, version):
                 }
     
     return None
+
+
+def get_port_scanner():
+    """Attempt to create and return an nmap.PortScanner instance.
+
+    Returns None if the underlying nmap binary is not available.
+    """
+    try:
+        return nmap.PortScanner()
+    except Exception as e:
+        # nmap.PortScanner raises PortScannerError when nmap binary missing
+        try:
+            from nmap import nmap as _nmap_module
+        except Exception:
+            pass
+        print(f"[NMAP] PortScanner unavailable: {e}. Vérifiez que Nmap est installé et accessible dans le PATH.")
+        return None
+
+
+def is_nmap_available():
+    """Return True if Nmap is installed and available on this host."""
+    return get_port_scanner() is not None
 
 
 def is_version_vulnerable(detected_version, max_safe_version):

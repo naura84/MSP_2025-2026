@@ -61,7 +61,7 @@ def run_scan(host):
 
     score = 100
 
-    #dictionnaire des ports et du risque associé à chaque port
+    # dictionnaire des ports et du risque associé à chaque port
     risk_rules = {
         21: 40,
         22: 20,
@@ -73,17 +73,14 @@ def run_scan(host):
     open_ports = []
 
     for port in ports_to_scan:
-
-        if check_port(host, port): #si le port est ouvert, on l'ajoute à la liste des ports ouverts et on réduit le score de sécurité en fonction du risque associé à ce port
+        if check_port(host, port):
             open_ports.append(port)
-        
-        if port in risk_rules: #réduire le score de n points en fonction des ports ouverts
-            score -= risk_rules[port]
+            score -= risk_rules.get(port, 0)
 
     risque = "faible"
     port_string = ",".join(map(str, open_ports))
 
-# Déterminer le niveau de risque en fonction du score
+    # Déterminer le niveau de risque en fonction du score
     if score >= 80:
         risque = "faible"
     elif score >= 50:
@@ -91,7 +88,7 @@ def run_scan(host):
     else:
         risque = "élevé"
     
-    #connexion à la base de données
+    # connexion à la base de données
     conn = sqlite3.connect("audit.db")
 
     cursor = conn.cursor()
@@ -120,9 +117,9 @@ def run_scan(host):
     conn.close()
 
     return {
-        "host" : host,
-        "ports_ouverts" : open_ports,
-        "risque" : risque,
-        "score_de_sécurité" : score,
-        "date_de_scan" : date_scan
+        "host": host,
+        "open_ports": open_ports,
+        "risque": risque,
+        "score": score,
+        "date_scan": date_scan
     }
