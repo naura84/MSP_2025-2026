@@ -109,9 +109,9 @@ def run_nmap_scan(host, ports_to_scan=None):
         }
 
     try:
-        nm.scan(hosts=host, ports=port_string, arguments="-sV -T4")
+        scan_result = nm.scan(hosts=host, ports=port_string, arguments="-sV --version-light -n -Pn -T4 --max-retries 2 --host-timeout 90s")
         
-        host_data = nm["scan"].get(host, {})
+        host_data = scan_result.get("scan", {}).get(host, {})
         
         if not host_data:
             return {
@@ -155,22 +155,52 @@ def run_nmap_scan(host, ports_to_scan=None):
         
         risk_score, risk_level = calculate_risk_score(services_found, vulnerabilities_found)
         
+        SEVERITY_RANK = {"critical": 4, "high": 3, "medium": 2, "low": 1}
+
+        def pick_top_vulnerability(vulnerabilities_found):
+            """Renvoie le service_entry à la vulnérabilité la plus grave, ou None."""
+            if not vulnerabilities_found:
+                return None
+            return max(
+                vulnerabilities_found,
+                key=lambda s: SEVERITY_RANK.get(
+                    (s.get("vulnerability", {}).get("severity") or "").lower(), 0
+                ),
+            )
         # Save to database
+        risk_score, risk_level = calculate_risk_score(services_found, vulnerabilities_found)
+        scan_date = datetime.utcnow().isoformat()  # une seule fois, réutilisé plus bas
+
+        # une ligne par scan
         try:
             conn = sqlite3.connect("audit.db")
             cursor = conn.cursor()
-            
+
             ports_ouverts = [s["port"] for s in services_found]
             port_string_db = ",".join(map(str, ports_ouverts))
-            
+
+            # Vulnérabilité la plus grave (ou None si scan clean)
+            top = pick_top_vulnerability(vulnerabilities_found)
+            if top:
+                v = top["vulnerability"]
+                top_service     = top.get("service")
+                top_version     = top.get("version")
+                top_cve         = v.get("cve")
+                top_severity    = v.get("severity")
+                top_description = v.get("description")
+            else:
+                top_service = top_version = top_cve = top_severity = top_description = None
+
             cursor.execute(
                 """
-                INSERT INTO scans (host, ports, risque, score, date_scan, service, detected_version, cve, severity, description)
+                INSERT INTO scans (host, ports, risque, score, date_scan,
+                                   service, detected_version, cve, severity, description)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (host, port_string_db, risk_level, risk_score, datetime.utcnow().isoformat(), service_entry["service"], service_entry["version"], vuln["cve"], vuln["severity"], vuln["description"])
+                (host, port_string_db, risk_level, risk_score, scan_date,
+                 top_service, top_version, top_cve, top_severity, top_description)
             )
-            
+
             conn.commit()
             conn.close()
         except Exception as e:
@@ -178,7 +208,7 @@ def run_nmap_scan(host, ports_to_scan=None):
         
         return {
             "host": host,
-            "scan_date": datetime.utcnow().isoformat(),
+            "scan_date": scan_date,
             "ports_scanned": ports_to_scan,
             "services_found": services_found,
             "vulnerabilities": vulnerabilities_found,
@@ -190,7 +220,7 @@ def run_nmap_scan(host, ports_to_scan=None):
         return {
             "host": host,
             "error": f"Nmap error: {str(e)}. Is Nmap installed?",
-            "scan_date": datetime.utcnow().isoformat()
+            "scan_date": scan_date
         }
     except Exception as e:
         return {

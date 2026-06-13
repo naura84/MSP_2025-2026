@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Automatic Audit — Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --blue: #2563eb; --blue-hover: #1d4ed8;
+      --ink: #0f172a; --muted: #64748b;
+      --field-bg: #f1f3f5; --field-icon: #94a3b8;
+      --card-border: #e8eaed; --bg: #f6f8fb;
+      --red: #ef4444; --orange: #f97316;
+      --row-bg: #f8fafc;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--ink); min-height: 100vh; }
+    .mono { font-family: 'JetBrains Mono', ui-monospace, monospace; }
+
+    /* Navbar */
+    .navbar { background:#fff; border-bottom:1px solid var(--card-border); height:64px; display:flex; align-items:center; justify-content:space-between; padding:0 32px; }
+    .nav-brand { display:flex; align-items:center; gap:12px; }
+    .nav-logo { width:40px; height:40px; border-radius:10px; background:var(--blue); display:flex; align-items:center; justify-content:center; }
+    .nav-brand .title { font-size:18px; font-weight:600; line-height:1.1; }
+    .nav-brand .subtitle { font-size:12px; color:var(--muted); }
+    .nav-links { display:flex; align-items:center; gap:8px; }
+    .nav-item { display:inline-flex; align-items:center; gap:8px; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:500; color:var(--ink); background:none; border:none; cursor:pointer; text-decoration:none; font-family:inherit; }
+    .nav-item:hover { background:#f1f5f9; }
+    .nav-item.active { background:var(--blue); color:#fff; }
+    .nav-item.active:hover { background:var(--blue-hover); }
+    .nav-divider { width:1px; height:24px; background:#e2e8f0; margin:0 6px; }
+    .nav-item.logout { color:var(--red); }
+    .nav-item.logout:hover { background:#fef2f2; }
+
+    /* Layout */
+    .container { max-width:1280px; margin:0 auto; padding:32px; }
+    .page-title { font-size:32px; font-weight:700; letter-spacing:-0.02em; }
+    .page-subtitle { margin-top:6px; font-size:16px; color:var(--muted); }
+    .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:24px; margin-top:28px; }
+    .main-grid { display:grid; grid-template-columns:minmax(320px,360px) 1fr; gap:24px; margin-top:24px; align-items:start; }
+    .col { display:flex; flex-direction:column; gap:24px; }
+
+    .card { background:#fff; border:1px solid var(--card-border); border-radius:14px; padding:24px; box-shadow:0 1px 2px rgba(15,23,42,.04); }
+
+    /* Stat cards */
+    .stat-head { display:flex; align-items:center; justify-content:space-between; }
+    .stat-label { font-size:15px; font-weight:500; }
+    .stat-value { font-size:36px; font-weight:600; margin-top:16px; letter-spacing:-0.01em; }
+    .stat-sub { margin-top:8px; font-size:13px; color:var(--muted); }
+
+    /* Scan card */
+    .scan-head { display:flex; align-items:center; gap:10px; }
+    .scan-head h3 { font-size:18px; font-weight:600; }
+    .scan-desc { margin-top:10px; font-size:14px; color:var(--muted); line-height:1.5; }
+    .segmented { display:flex; background:var(--field-bg); border-radius:10px; padding:4px; margin-top:20px; }
+    .segment { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:9px 0; font-size:14px; font-weight:500; color:var(--muted); background:none; border:none; cursor:pointer; border-radius:7px; font-family:inherit; transition:background .15s,color .15s; }
+    .segment.active { background:#fff; color:var(--ink); box-shadow:0 1px 3px rgba(15,23,42,.12); }
+    .field { margin-top:18px; }
+    .field-label { display:block; font-size:14px; font-weight:500; margin-bottom:8px; }
+    .field input { width:100%; height:44px; border:1px solid transparent; background:var(--field-bg); border-radius:8px; padding:0 14px; font-size:15px; font-family:inherit; color:var(--ink); outline:none; transition:border-color .15s,box-shadow .15s,background .15s; }
+    .field input::placeholder { color:#9aa4b2; }
+    .field input:focus { background:#fff; border-color:var(--blue); box-shadow:0 0 0 3px rgba(37,99,235,.15); }
+    .field-help { margin-top:8px; font-size:12px; color:var(--muted); }
+    .btn { width:100%; height:46px; margin-top:20px; border:none; border-radius:8px; background:var(--blue); color:#fff; font-size:15px; font-weight:500; font-family:inherit; cursor:pointer; transition:background .15s; }
+    .btn:hover { background:var(--blue-hover); }
+    .btn:disabled { opacity:.7; cursor:not-allowed; }
+
+    /* Recent scans */
+    .recent-head { display:flex; align-items:flex-start; justify-content:space-between; }
+    .recent-head h3 { font-size:18px; font-weight:600; }
+    .recent-head .sub { font-size:13px; color:var(--muted); margin-top:2px; }
+    .recent-link { font-size:14px; font-weight:500; color:var(--blue); text-decoration:none; cursor:pointer; }
+    .recent-item { display:flex; align-items:center; justify-content:space-between; gap:12px; background:var(--row-bg); border-radius:10px; padding:12px 14px; margin-top:12px; }
+    .recent-host { font-size:13px; }
+    .recent-date { font-size:12px; color:var(--muted); margin-top:4px; }
+    .recent-empty { font-size:14px; color:var(--muted); margin-top:14px; }
+
+    /* Results: Scan Results header card */
+    .results-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:320px; }
+    .results-empty .empty-icon { color:#cbd5e1; }
+    .results-empty .empty-text { margin-top:16px; font-size:15px; color:var(--muted); }
+
+    .results-head { display:flex; align-items:center; justify-content:space-between; }
+    .results-head .left { display:flex; align-items:center; gap:10px; }
+    .results-head h3 { font-size:18px; font-weight:600; }
+    .download-btn { display:inline-flex; align-items:center; gap:8px; background:var(--blue); color:#fff; border:none; border-radius:8px; padding:9px 16px; font-size:14px; font-weight:500; font-family:inherit; cursor:pointer; }
+    .download-btn:hover { background:var(--blue-hover); }
+    .target-line { margin-top:8px; font-size:14px; color:var(--muted); }
+    .summary-row { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-top:18px; }
+    .summary-item { display:flex; align-items:center; gap:12px; background:var(--row-bg); border-radius:10px; padding:14px; }
+    .summary-item .s-label { font-size:12px; color:var(--muted); }
+    .summary-item .s-value { font-size:14px; font-weight:500; margin-top:2px; }
+
+    /* Risk */
+    .risk-top { display:flex; align-items:flex-start; justify-content:space-between; margin-top:18px; }
+    .risk-score { font-size:40px; font-weight:600; letter-spacing:-0.01em; }
+    .risk-label { font-size:13px; color:var(--muted); margin-top:4px; }
+    .risk-bar { height:10px; background:#e2e8f0; border-radius:999px; margin-top:20px; overflow:hidden; }
+    .risk-bar-fill { height:100%; background:#0f172a; border-radius:999px; transition:width .4s; }
+
+    /* Sections (ports / vulns) */
+    .section-title { font-size:18px; font-weight:600; }
+    .section-desc { font-size:14px; color:var(--muted); margin-top:4px; }
+    .port-row { display:flex; align-items:center; justify-content:space-between; background:var(--row-bg); border-radius:10px; padding:14px 16px; margin-top:12px; }
+    .port-name { font-size:15px; font-weight:500; }
+    .port-status { font-size:13px; color:var(--muted); margin-top:3px; }
+
+    .vuln-item { background:var(--row-bg); border-radius:10px; padding:16px; margin-top:12px; }
+    .vuln-top { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .vuln-title { font-size:15px; font-weight:500; }
+    .vuln-cve { font-size:12px; color:var(--muted); margin-top:3px; }
+    .vuln-divider { height:1px; background:#e5e7eb; margin:14px 0; }
+    .vuln-block + .vuln-block { margin-top:12px; }
+    .vuln-block .lbl { font-size:13px; font-weight:500; }
+    .vuln-block .txt { font-size:14px; color:#475569; margin-top:3px; line-height:1.5; }
+
+    /* Badges */
+    .badge { font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; white-space:nowrap; letter-spacing:.02em; }
+    .badge-low { background:#dcfce7; color:#16a34a; }
+    .badge-medium { background:#fef9c3; color:#ca8a04; }
+    .badge-high { background:#ffedd5; color:#ea580c; }
+    .badge-critical { background:#fee2e2; color:#dc2626; }
+    .badge-neutral { background:#e2e8f0; color:#475569; }
+    .score-badge { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500; padding:3px 9px; border-radius:8px; }
+
+    .hidden { display:none; }
+
+    @media (max-width:980px) {
+      .stats-grid { grid-template-columns:1fr; }
+      .main-grid { grid-template-columns:1fr; }
+      .summary-row { grid-template-columns:1fr; }
+      .nav-brand .subtitle { display:none; }
+      .container { padding:24px 16px; }
+      .navbar { padding:0 16px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div><div class="title">Automatic Audit</div><div class="subtitle">Security Platform</div></div>
+    </div>
+    <div class="nav-links">
+      <a href="dashboard.html" class="nav-item active">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a href="history.html" class="nav-item">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+        Scan History
+      </a>
+      <div class="nav-divider"></div>
+      <button class="nav-item logout" id="logout-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+        Logout
+      </button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1 class="page-title">Security Dashboard</h1>
+    <p class="page-subtitle">Monitor and analyze your infrastructure security</p>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+      <div class="card">
+        <div class="stat-head"><span class="stat-label">Total Scans</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+        </div>
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-sub">All-time scans performed</div>
+      </div>
+      <div class="card">
+        <div class="stat-head"><span class="stat-label">Critical Findings</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--red)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        </div>
+        <div class="stat-value" id="stat-critical">0</div>
+        <div class="stat-sub">High-risk vulnerabilities</div>
+      </div>
+      <div class="card">
+        <div class="stat-head"><span class="stat-label">Avg Risk Score</span>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--orange)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        </div>
+        <div class="stat-value" id="stat-risk">0/100</div>
+        <div class="stat-sub">Average across all scans</div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <!-- LEFT -->
+      <div class="col">
+        <div class="card scan-card">
+          <div class="scan-head">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+            <h3>New Security Scan</h3>
+          </div>
+          <p class="scan-desc">Scan an IP address or URL to identify open ports and vulnerabilities</p>
+          <div class="segmented">
+            <button class="segment active" data-mode="ip">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="16" y="16" width="6" height="6" rx="1"/><path d="M12 8v4"/><path d="M5 16v-2a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v2"/></svg>
+              IP Address
+            </button>
+            <button class="segment" data-mode="url">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              URL
+            </button>
+          </div>
+          <div class="field">
+            <label class="field-label" id="target-label" for="target">IP Address</label>
+            <input type="text" id="target" placeholder="192.168.1.1" />
+            <p class="field-help" id="target-help">Enter the IP address you want to scan for vulnerabilities</p>
+          </div>
+          <button type="button" class="btn" id="scan-btn">Start IP Scan</button>
+        </div>
+
+        <div class="card">
+          <div class="recent-head">
+            <div><h3>Recent Scans</h3><div class="sub">Last 5 scans</div></div>
+            <a class="recent-link" href="history.html">View All</a>
+          </div>
+          <div id="recent-list"><p class="recent-empty">No scans yet.</p></div>
+        </div>
+      </div>
+
+      <!-- RIGHT -->
+      <div class="col" id="results-col">
+        <!-- Empty state -->
+        <div class="card results-empty" id="results-empty">
+          <svg class="empty-icon" width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <p class="empty-text">No active scan. Start a new scan to see results.</p>
+        </div>
+
+        <!-- Results (filled by JS) -->
+        <div id="results" class="hidden">
+          <div class="card">
+            <div class="results-head">
+              <div class="left">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                <h3>Scan Results</h3>
+              </div>
+              <button class="download-btn" id="download-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download PDF
+              </button>
+            </div>
+            <p class="target-line" id="target-line"></p>
+            <div class="summary-row">
+              <div class="summary-item">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <div><div class="s-label">Scanned At</div><div class="s-value" id="sum-date">—</div></div>
+              </div>
+              <div class="summary-item">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <div><div class="s-label">Open Ports</div><div class="s-value" id="sum-ports">—</div></div>
+              </div>
+              <div class="summary-item">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--blue)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <div><div class="s-label">Vulnerabilities</div><div class="s-value" id="sum-vulns">—</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card" style="margin-top:24px;">
+            <h3 class="section-title">Risk Assessment</h3>
+            <div class="risk-top">
+              <div><div class="risk-score" id="risk-score">0/100</div><div class="risk-label">Overall Risk Score</div></div>
+              <span class="badge" id="risk-badge">—</span>
+            </div>
+            <div class="risk-bar"><div class="risk-bar-fill" id="risk-fill" style="width:0%"></div></div>
+          </div>
+
+          <div class="card" style="margin-top:24px;">
+            <h3 class="section-title" id="ports-title">Open Ports (0)</h3>
+            <p class="section-desc">Network ports that are currently accessible</p>
+            <div id="ports-list"></div>
+          </div>
+
+          <div class="card" style="margin-top:24px;">
+            <h3 class="section-title" id="vulns-title">Vulnerabilities (0)</h3>
+            <p class="section-desc">Security issues detected during the scan</p>
+            <div id="vulns-list"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ─── Config backend ───
+    const API_BASE = "http://127.0.0.1:8000";
+
+    // ─── Sélecteur IP / URL ───
+    let mode = "ip";
+    const segments = document.querySelectorAll(".segment");
+    const label = document.getElementById("target-label");
+    const input = document.getElementById("target");
+    const help = document.getElementById("target-help");
+    const scanBtn = document.getElementById("scan-btn");
+    const config = {
+      ip:  { label:"IP Address", placeholder:"192.168.1.1", help:"Enter the IP address you want to scan for vulnerabilities", btn:"Start IP Scan" },
+      url: { label:"URL", placeholder:"https://example.com", help:"Enter the URL you want to scan for security issues", btn:"Start URL Scan" },
+    };
+    segments.forEach((seg) => seg.addEventListener("click", () => {
+      segments.forEach(s => s.classList.remove("active"));
+      seg.classList.add("active");
+      mode = seg.dataset.mode;
+      const c = config[mode];
+      label.textContent = c.label; input.placeholder = c.placeholder; input.value = "";
+      help.textContent = c.help; scanBtn.textContent = c.btn;
+    }));
+
+    // ─── Helpers severité (basés sur les valeurs du backend : critical/high/medium/low ET faible/moyen/élevé) ───
+    function sevClass(sev) {
+      const s = (sev || "").toLowerCase();
+      if (s === "critical" || s === "critique") return "badge-critical";
+      if (s === "high" || s === "élevé" || s === "eleve") return "badge-high";
+      if (s === "medium" || s === "moyen") return "badge-medium";
+      if (s === "low" || s === "faible") return "badge-low";
+      return "badge-neutral";
+    }
+    function sevLabel(sev) {
+      const map = { critical:"CRITICAL", critique:"CRITICAL", high:"HIGH", "élevé":"HIGH", eleve:"HIGH", medium:"MEDIUM", moyen:"MEDIUM", low:"LOW", faible:"LOW" };
+      const s = (sev || "").toLowerCase();
+      return map[s] || (sev ? sev.toUpperCase() : "OPEN");
+    }
+    function formatDate(iso, withTime = true) {
+      if (!iso) return "—";
+      const d = new Date(iso); if (isNaN(d)) return iso;
+      const p = n => String(n).padStart(2, "0");
+      const date = `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()}`;
+      return withTime ? `${date} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}` : date;
+    }
+    function esc(s) { const d = document.createElement("div"); d.textContent = s == null ? "" : String(s); return d.innerHTML; }
+
+    // ─── Lancer un scan ───
+    let lastScan = null;
+    const POLL_INTERVAL = 6000;   // ms entre deux vérifications de l'état
+    const POLL_TIMEOUT  = 120000; // abandon au bout de 2 min
+
+    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+    scanBtn.addEventListener("click", async () => {
+      const target = input.value.trim();
+      if (!target) { input.focus(); return; }
+      const token = localStorage.getItem("token");
+      const authHeaders = token ? { Authorization: `Bearer ${token}` } : {};
+      scanBtn.disabled = true;
+      const original = scanBtn.textContent;
+      scanBtn.textContent = "Scanning…";
+
+      // Un objet "ressemble-t-il" à un résultat de scan ?
+      const isResult = (o) => o && (o.services_found !== undefined || o.risk_score !== undefined || o.risk_level !== undefined);
+
+      try {
+        const res = await fetch(`${API_BASE}/nmap_scan`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", ...authHeaders },
+          body: JSON.stringify({ type: mode, target }),
+        });
+        if (!res.ok) throw new Error("start failed");
+        const data = await res.json();
+        alert("POST → " + JSON.stringify(data)); // debug temporaire
+
+        // Cas erreur explicite renvoyée par le backend
+        if (data.error) { showEmptyError(data.error); return; }
+
+        // Cas 1 : le POST renvoie déjà le résultat (scan synchrone)
+        if (isResult(data)) { lastScan = data; renderResult(data, target, mode); return; }
+
+        // Cas 2 : le POST renvoie un job → polling
+        const job_id = data.job_id || data.id;
+        if (!job_id) { console.warn("Réponse inattendue", data); showEmptyError("Réponse du serveur inattendue (voir console)."); return; }
+
+        const deadline = Date.now() + POLL_TIMEOUT;
+        while (Date.now() < deadline) {
+          await sleep(POLL_INTERVAL);
+          const poll = await fetch(`${API_BASE}/nmap_scan/${job_id}`, { headers: authHeaders });
+          if (!poll.ok) throw new Error("poll failed");
+          const job = await poll.json();
+          console.log("GET status →", job); // à enlever une fois que ça marche
+
+          const status = (job.status || "").toLowerCase();
+          const result = job.result || (isResult(job) ? job : null);
+
+          if (status === "done" || status === "finished" || status === "completed" || isResult(result)) {
+            if (result) { lastScan = result; renderResult(result, target, mode); return; }
+          }
+          if (status === "error" || job.error) { showEmptyError(job.detail || job.error || "Le scan a échoué."); return; }
+        }
+        showEmptyError("Le scan prend trop de temps. Réessaie ou réduis la portée.");
+      } catch (err) {
+        console.error(err);
+        showEmptyError("Scan impossible. Vérifie le serveur et réessaie.");
+      } finally {
+        scanBtn.disabled = false;
+        scanBtn.textContent = original;
+      }
+    });
+
+    function showEmptyError(msg) {
+      document.getElementById("results").classList.add("hidden");
+      const empty = document.getElementById("results-empty");
+      empty.classList.remove("hidden");
+      empty.querySelector(".empty-text").textContent = msg;
+      empty.querySelector(".empty-text").style.color = "var(--red)";
+    }
+
+    // ─── Affichage des résultats (forme = retour de run_nmap_scan) ───
+    function renderResult(data, target, type) {
+      document.getElementById("results-empty").classList.add("hidden");
+      document.getElementById("results").classList.remove("hidden");
+
+      const services = data.services_found || [];
+      const vulns = data.vulnerabilities || [];
+      const score = data.risk_score ?? 0;
+      const level = data.risk_level || "";
+
+      // En-tête
+      document.getElementById("target-line").innerHTML =
+        `Target: <span class="mono">${esc(data.host || target)}</span> (${(type || "ip").toUpperCase()})`;
+      document.getElementById("sum-date").textContent = formatDate(data.scan_date);
+      document.getElementById("sum-ports").textContent = `${services.length} detected`;
+      document.getElementById("sum-vulns").textContent = `${vulns.length} found`;
+
+      // Risk
+      document.getElementById("risk-score").textContent = `${score}/100`;
+      const rb = document.getElementById("risk-badge");
+      rb.textContent = sevLabel(level) === "OPEN" ? "—" : sevLabel(level);
+      rb.className = "badge " + sevClass(level);
+      document.getElementById("risk-fill").style.width = `${Math.max(0, Math.min(100, score))}%`;
+
+      // Open ports
+      document.getElementById("ports-title").textContent = `Open Ports (${services.length})`;
+      const portsList = document.getElementById("ports-list");
+      portsList.innerHTML = services.map(s => {
+        const sev = s.vulnerable ? (s.vulnerability && s.vulnerability.severity) : null;
+        const svcName = (s.service || "unknown").toUpperCase();
+        return `<div class="port-row">
+            <div><div class="port-name">Port ${esc(s.port)} - ${esc(svcName)}</div>
+            <div class="port-status">Status: ${esc(s.state || "open")}</div></div>
+            <span class="badge ${sevClass(sev)}">${sevLabel(sev)}</span>
+          </div>`;
+      }).join("") || `<p class="recent-empty">No open ports found.</p>`;
+
+      // Vulnerabilities
+      document.getElementById("vulns-title").textContent = `Vulnerabilities (${vulns.length})`;
+      const vulnsList = document.getElementById("vulns-list");
+      vulnsList.innerHTML = vulns.map(item => {
+        const v = item.vulnerability || {};
+        const title = (v.product && v.product !== "Unknown") ? v.product
+                      : `${(item.service || "Service")} vulnerability`;
+        const remediation = v.remediation
+          ? `<div class="vuln-block"><div class="lbl">Remediation:</div><div class="txt">${esc(v.remediation)}</div></div>`
+          : "";
+        return `<div class="vuln-item">
+            <div class="vuln-top">
+              <div><div class="vuln-title">${esc(title)}</div>
+              <div class="vuln-cve mono">${esc(v.cve || "—")}</div></div>
+              <span class="badge ${sevClass(v.severity)}">${sevLabel(v.severity)}</span>
+            </div>
+            <div class="vuln-divider"></div>
+            <div class="vuln-block"><div class="lbl">Description:</div><div class="txt">${esc(v.description || "—")}</div></div>
+            ${remediation}
+          </div>`;
+      }).join("") || `<p class="recent-empty">No vulnerabilities detected.</p>`;
+
+      loadHistory();
+    }
+
+    // ─── Recent scans ───
+    function recentItemHTML(s) {
+      return `<div class="recent-item">
+          <div><div class="recent-host mono">${esc(s.host)}</div>
+          <div class="recent-date">${formatDate(s.date_scan, false)}</div></div>
+          <span class="score-badge ${sevClass(s.risque)}">${esc(s.score)}</span>
+        </div>`;
+    }
+    function prependRecent(s) {
+      const list = document.getElementById("recent-list");
+      if (list.querySelector(".recent-empty")) list.innerHTML = "";
+      list.insertAdjacentHTML("afterbegin", recentItemHTML(s));
+      while (list.children.length > 5) list.removeChild(list.lastElementChild);
+    }
+
+    function levelIsHigh(risque) {
+      const r = (risque || "").toLowerCase();
+      return r === "élevé" || r === "eleve" || r === "high" || r === "critical" || r === "critique";
+    }
+
+    async function loadHistory() {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`${API_BASE}/history`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+        if (!res.ok) return;
+        const data = await res.json();
+        const scans = data.history || [];
+
+        // Cartes de stats
+        document.getElementById("stat-total").textContent = scans.length;
+        document.getElementById("stat-critical").textContent = scans.filter(s => levelIsHigh(s.risque)).length;
+        const avg = scans.length
+          ? Math.round(scans.reduce((sum, s) => sum + (Number(s.score) || 0), 0) / scans.length)
+          : 0;
+        document.getElementById("stat-risk").textContent = `${avg}/100`;
+
+        // Recent Scans (5 derniers, plus récent en haut)
+        document.getElementById("recent-list").innerHTML =
+          scans.length ? scans.slice(-5).reverse().map(recentItemHTML).join("")
+                       : `<p class="recent-empty">No scans yet.</p>`;
+      } catch (_) { /* endpoint pas prêt */ }
+    }
+
+    // ─── Download PDF ───
+    document.getElementById("download-btn").addEventListener("click", async () => {
+      if (!lastScan) return;
+      // Adapte l'endpoint à ta route de génération PDF
+      const token = localStorage.getItem("token");
+      window.open(`${API_BASE}/nmap_scan/report?host=${encodeURIComponent(lastScan.host || "")}`, "_blank");
+    });
+
+    // ─── Logout ───
+    document.getElementById("logout-btn").addEventListener("click", () => {
+      localStorage.removeItem("token");
+      window.location.href = "index.html";
+    });
+
+    loadHistory();
+  </script>
+</body>
+</html>

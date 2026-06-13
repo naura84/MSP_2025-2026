@@ -1,21 +1,19 @@
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from auth.auth_handler import create_access_token
 
 router = APIRouter()
 
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
 @router.post("/login")
-def login(username: str, password: str):
+def login(data: LoginRequest):
+    if data.username != "admin" or data.password != "admin123":
+        raise HTTPException(status_code=401, detail="Identifiants invalides")
 
-    if username != "admin" or password != "admin123":
+    token = create_access_token(data.username)
+    return {"access_token": token}
 
-        raise HTTPException(
-            status_code=401, 
-            detail="Identifiants invalides"
-            )
-    
-    token = create_access_token(username)
-
-    return {
-        "access_token": token
-    }

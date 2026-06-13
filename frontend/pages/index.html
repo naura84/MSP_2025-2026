@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Automatic Audit — Connexion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --blue: #2563eb;
+      --blue-hover: #1d4ed8;
+      --ink: #0f172a;
+      --muted: #64748b;
+      --field-bg: #f1f3f5;
+      --field-icon: #94a3b8;
+      --card-border: #e8eaed;
+      --danger: #dc2626;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+      color: var(--ink);
+      /* Dégradé pastel : bleu en haut à gauche, rose/lavande dans les coins */
+      background:
+        radial-gradient(60% 60% at 0% 0%, #e3ecff 0%, rgba(227, 236, 255, 0) 60%),
+        radial-gradient(70% 70% at 100% 100%, #fbe7f3 0%, rgba(251, 231, 243, 0) 60%),
+        radial-gradient(60% 60% at 100% 0%, #f1ecff 0%, rgba(241, 236, 255, 0) 55%),
+        #fbfcfe;
+    }
+
+    .wrapper {
+      width: 100%;
+      max-width: 420px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    /* En-tête : logo + titre + sous-titre */
+    .brand-logo {
+      width: 64px;
+      height: 64px;
+      border-radius: 16px;
+      background: var(--blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
+    }
+
+    .brand-title {
+      margin-top: 20px;
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-subtitle {
+      margin-top: 6px;
+      font-size: 16px;
+      color: var(--muted);
+    }
+
+    /* Carte de connexion */
+    .card {
+      width: 100%;
+      margin-top: 28px;
+      background: #ffffff;
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 32px;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    }
+
+    .card h2 {
+      font-size: 24px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .card-desc {
+      margin-top: 8px;
+      font-size: 15px;
+      color: var(--muted);
+    }
+
+    .field {
+      margin-top: 22px;
+    }
+
+    .field-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      margin-bottom: 8px;
+    }
+
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+
+    .input-wrap .icon {
+      position: absolute;
+      left: 14px;
+      color: var(--field-icon);
+      display: flex;
+      pointer-events: none;
+    }
+
+    .input-wrap input {
+      width: 100%;
+      height: 44px;
+      border: 1px solid transparent;
+      background: var(--field-bg);
+      border-radius: 8px;
+      padding: 0 14px 0 42px;
+      font-size: 15px;
+      font-family: inherit;
+      color: var(--ink);
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+    }
+
+    .input-wrap input::placeholder { color: #9aa4b2; }
+
+    .input-wrap input:focus {
+      background: #ffffff;
+      border-color: var(--blue);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+    }
+
+    .btn {
+      width: 100%;
+      height: 46px;
+      margin-top: 26px;
+      border: none;
+      border-radius: 8px;
+      background: var(--blue);
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 500;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .btn:hover { background: var(--blue-hover); }
+    .btn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+    .demo {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .error {
+      display: none;
+      margin-top: 16px;
+      font-size: 14px;
+      color: var(--danger);
+      text-align: center;
+    }
+
+    .error.show { display: block; }
+
+    .footer-note {
+      margin-top: 24px;
+      font-size: 14px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    @media (max-width: 480px) {
+      .card { padding: 24px; }
+      .brand-title { font-size: 26px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <!-- Logo bouclier -->
+    <div class="brand-logo">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+      </svg>
+    </div>
+
+    <h1 class="brand-title">Automatic Audit</h1>
+    <p class="brand-subtitle">Security Scanning Platform</p>
+
+    <!-- Carte -->
+    <div class="card">
+      <h2>Welcome back</h2>
+      <p class="card-desc">Enter your credentials to access your account</p>
+
+      <form id="login-form" novalidate>
+        <div class="field">
+          <label class="field-label" for="username">Username</label>
+          <div class="input-wrap">
+            <span class="icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2" />
+                <path d="m22 7-10 5L2 7" />
+              </svg>
+            </span>
+            <input type="text" id="username" name="username" placeholder="analyst..." autocomplete="username" required />
+          </div>
+        </div>
+
+        <div class="field">
+          <label class="field-label" for="password">Password</label>
+          <div class="input-wrap">
+            <span class="icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </span>
+            <input type="password" id="password" name="password" placeholder="••••••••" autocomplete="current-password" required />
+          </div>
+        </div>
+
+        <button type="submit" class="btn" id="submit-btn">Sign In</button>
+
+        <p class="error" id="error-msg"></p>
+      </form>
+
+      <p class="demo">Demo credentials: Any username and password</p>
+    </div>
+
+    <p class="footer-note">Secure your infrastructure with automated vulnerability scanning</p>
+  </div>
+
+  <script>
+    
+    const API_URL = "http://127.0.0.1:8000/login"; // 
+
+    const form = document.getElementById("login-form");
+    const btn = document.getElementById("submit-btn");
+    const errorMsg = document.getElementById("error-msg");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorMsg.classList.remove("show");
+
+      const username = document.getElementById("username").value.trim();
+      const password = document.getElementById("password").value;
+
+      if (!username || !password) {
+        showError("Veuillez renseigner votre nom d'utilisateur et votre mot de passe.");
+        return;
+      }
+
+      btn.disabled = true;
+      btn.textContent = "Signing in…";
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username, password }),
+        });
+
+        if (!res.ok) {
+          showError("Nom d'utilisateur ou mot de passe incorrect.");
+          return;
+        }
+
+        const data = await res.json();
+
+        if (data.access_token) {
+          localStorage.setItem("token", data.access_token);
+        }
+
+        // Redirection après connexion réussie
+        window.location.href = "dashboard.html";
+      } catch (err) {
+        showError("Impossible de joindre le serveur. Réessaie plus tard.");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Sign In";
+      }
+    });
+
+    function showError(message) {
+      errorMsg.textContent = message;
+      errorMsg.classList.add("show");
+    }
+  </script>
+</body>
+</html>

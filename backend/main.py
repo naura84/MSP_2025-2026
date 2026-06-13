@@ -8,8 +8,17 @@ from routes.auth import router as auth_router
 from routes.health import router as health_router
 from routes.nmap_scan import router as nmap_scan_router
 from services.nmap_scanner import is_nmap_available
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],         
+    allow_credentials=True,
+    allow_methods=["*"],       
+    allow_headers=["*"],     
+)
 
 
 @app.on_event("startup")
