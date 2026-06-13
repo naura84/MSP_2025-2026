@@ -365,7 +365,6 @@
         });
         if (!res.ok) throw new Error("start failed");
         const data = await res.json();
-        alert("POST → " + JSON.stringify(data)); // debug temporaire
 
         // Cas erreur explicite renvoyée par le backend
         if (data.error) { showEmptyError(data.error); return; }
@@ -519,9 +518,8 @@
     // ─── Download PDF ───
     document.getElementById("download-btn").addEventListener("click", async () => {
       if (!lastScan) return;
-      // Adapte l'endpoint à ta route de génération PDF
       const token = localStorage.getItem("token");
-      window.open(`${API_BASE}/nmap_scan/report?host=${encodeURIComponent(lastScan.host || "")}`, "_blank");
+      window.open(`${API_BASE}/report`, "_blank");
     });
 
     // ─── Logout ───
