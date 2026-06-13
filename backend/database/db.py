@@ -10,6 +10,7 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS scans (
                ports TEXT,
                risque TEXT,
                score INTEGER,
+               type TEXT,
                date_scan TEXT,
                service TEXT,
                detected_version TEXT,

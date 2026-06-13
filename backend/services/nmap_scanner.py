@@ -84,7 +84,7 @@ def discover_hosts(network="192.168.1.0/24"):
         return []
 
 
-def run_nmap_scan(host, ports_to_scan=None):
+def run_nmap_scan(host, ports_to_scan=None, scan_type="ip"):
     """
     Run Nmap scan with version detection on given ports.
     Returns services found, vulnerabilities, and risk score.
@@ -193,11 +193,11 @@ def run_nmap_scan(host, ports_to_scan=None):
 
             cursor.execute(
                 """
-                INSERT INTO scans (host, ports, risque, score, date_scan,
+                INSERT INTO scans (host, type, ports, risque, score, date_scan,
                                    service, detected_version, cve, severity, description)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
-                (host, port_string_db, risk_level, risk_score, scan_date,
+                (host, scan_type, port_string_db, risk_level, risk_score, scan_date,
                  top_service, top_version, top_cve, top_severity, top_description)
             )
 

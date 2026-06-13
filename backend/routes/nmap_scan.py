@@ -29,11 +29,11 @@ def _resolve_host(scan_type: str, target: str) -> str:
     return target
 
 
-def _run_job(job_id: str, host: str):
+def _run_job(job_id: str, host: str, scan_type: str):
     """Exécuté en tâche de fond : lance le scan et stocke le résultat."""
     JOBS[job_id] = {"status": "running"}
     try:
-        result = run_nmap_scan(host)
+        result = run_nmap_scan(host, scan_type=scan_type)
         if result.get("error"):
             JOBS[job_id] = {"status": "error", "detail": result["error"]}
         else:
@@ -51,7 +51,7 @@ def start_scan(req: ScanRequest, bg: BackgroundTasks):
 
     job_id = str(uuid.uuid4())
     JOBS[job_id] = {"status": "running"}
-    bg.add_task(_run_job, job_id, host)
+    bg.add_task(_run_job, job_id, host, req.type)
     return {"job_id": job_id, "status": "running"}
 
 
