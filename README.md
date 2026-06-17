@@ -1,303 +1,153 @@
-# Professional Situation 2025-2026 - Security Audit Tool
+# MSP 2025-2026 - Outil d’audit et de scan réseau
 
-## A. Description
+Ce projet est une application web de sécurité qui permet de lancer des scans réseau, d’analyser les résultats, d’afficher l’historique des audits et de générer des rapports PDF. L’architecture est basée sur un backend FastAPI et une interface HTML/JavaScript.
 
-This project is a comprehensive security audit tool built with FastAPI that provides network vulnerability scanning, audit reporting, and security analytics. It includes JWT-based authentication, Nmap integration for port scanning, automated PDF report generation, and a web-based interface for managing security audits.
+## Fonctionnalités principales
 
-## B. Key Features
+- Authentification via JWT avec identifiants par défaut (`admin` / `admin123`)
+- Scan de hôte via l’API `/scan`
+- Scan avancé via Nmap avec support des types `ip` et `url`
+- Suivi des scans en tâche de fond via `/nmap_scan` et `/nmap_scan/{job_id}`
+- Historique des résultats stockés dans une base SQLite
+- Statistiques globales sur les scans
+- Génération de rapports PDF
+- Suppression d’un scan spécifique
+- Vérification de l’état de la base de données et du service
 
-- **Authentication System**: JWT token-based authentication with secure login
-- **Network Scanning**: Port scanning using Nmap with service/version detection
-- **Risk Assessment**: Automated vulnerability analysis and risk scoring
-- **Report Generation**: Professional PDF reports with security findings
-- **Data Management**: SQLite database for storing scan results and history
-- **RESTful API**: Complete API for all operations with CORS support
-- **Web Dashboard**: HTML-based frontend for users to interact with the tool
-- **Background Jobs**: Asynchronous scan job processing
-- **Statistics & Analytics**: Scan history tracking and statistical analysis
-- **System Logging**: Comprehensive logging system for audit trails
+## Structure du projet
 
-## C. Project Structure
-
-```
+```text
 MSP_2025-2026/
-├── backend/                    # FastAPI backend application
-│   ├── main.py                # Application entry point and router configuration
+├── backend/
 │   ├── auth/
-│   │   └── auth_handler.py    # JWT token creation and validation
+│   │   └── auth_handler.py       # création et vérification des tokens JWT
+│   ├── core/
+│   │   └── logger.py             # configuration des logs
 │   ├── database/
-│   │   └── db.py              # Database initialization and connection
-│   ├── models/                # Data models (Pydantic schemas)
-│   ├── routes/                # API endpoint handlers
-│   │   ├── auth.py            # POST /login - User authentication
-│   │   ├── health.py          # Database health check endpoints
-│   │   ├── scan.py            # GET /scan - Initiate host scanning
-│   │   ├── nmap_scan.py       # Nmap-specific scanning endpoints
-│   │   ├── report.py          # Report retrieval and management
-│   │   ├── history.py         # Scan history endpoints
-│   │   ├── stats.py           # Statistics and analytics endpoints
-│   │   └── logs.py            # System logs endpoints
-│   └── services/              # Business logic and utilities
-│       ├── scanner.py         # Core scanning orchestration
-│       ├── nmap_scanner.py    # Nmap integration and execution
-│       ├── jobs.py            # Background job processing
-│       └── report_generator.py # PDF report creation using ReportLab
-├── frontend/                  # Web-based user interface
+│   │   └── db.py                 # création de la base SQLite audit.db
+│   ├── logs/
+│   │   └── audit.log             # journal d’audit
+│   ├── routes/
+│   │   ├── auth.py               # POST /login
+│   │   ├── health.py             # GET /health
+│   │   ├── scan.py               # GET /scan
+│   │   ├── nmap_scan.py          # POST /nmap_scan + suivi de job
+│   │   ├── history.py            # GET /history
+│   │   ├── stats.py              # GET /stats
+│   │   ├── report.py             # GET /report et /report/{scan_id}
+│   │   └── delete_scans.py       # DELETE /delete_scans/{scan_id}
+│   ├── services/
+│   │   ├── scanner.py            # logique de scan classique
+│   │   ├── nmap_scanner.py       # intégration Nmap et évaluation des risques
+│   │   ├── report_generator.py   # génération des PDF
+│   │   └── test_scanner.py       # script de test manuel
+│   └── main.py                   # point d’entrée FastAPI
+├── frontend/
 │   └── pages/
-│       ├── index.html         # Dashboard landing page
-│       ├── dashboard.html     # Main dashboard interface
-│       └── history.html       # Scan history view
-├── logs_analyzer/             # Log analysis utilities
-└── requirements.txt           # Python dependencies
+│       ├── index.html
+│       ├── dashboard.html
+│       └── history.html
+└── requirements.txt
 ```
 
-## D. Technology Stack
+## Stack technique
 
-- **Backend Framework**: FastAPI with Uvicorn ASGI server
-- **Authentication**: Python-jose with cryptography
-- **Network Scanning**: python-nmap (Nmap integration)
-- **Report Generation**: ReportLab for PDF creation
-- **Database**: SQLite
-- **Frontend**: HTML/JavaScript
-- **Middleware**: CORS support for cross-origin requests
+- Backend : FastAPI + Uvicorn
+- Authentification : JWT (python-jose)
+- Scan réseau : Nmap via `python-nmap`
+- Génération de rapports : ReportLab
+- Base de données : SQLite
+- Frontend : pages HTML statiques
 
-## E. Installation & Setup
+## Prérequis
 
-### E1. Prerequisites
+- Python 3.10+
+- `pip`
+- Nmap installé et disponible dans le `PATH`
+- Git
 
-- Python 3.8 or higher
-- pip package manager
-- Nmap installed on the system (available in PATH)
-- Git for version control
-
-### E2. Install Dependencies
-
-From the project root directory:
+## Installation
 
 ```bash
 pip install -r requirements.txt
 ```
 
-The `requirements.txt` includes:
-- fastapi
-- uvicorn
-- python-jose
-- python-nmap
-- reportlab
-- requests
+## Lancer l’application
 
-### E3. Verify Nmap Installation
-
-Ensure Nmap is installed and accessible:
-
-```bash
-nmap --version
-```
-
-If Nmap is not available, the application will display a warning on startup.
-
-## F. Running the Application
-
-### F1. Start the Backend
-
-Navigate to the backend directory and run:
+### Backend
 
 ```bash
 cd backend
 python -m uvicorn main:app --reload
 ```
 
-- Server runs on: `http://127.0.0.1:8000`
-- Auto-reload is enabled for development
-- Startup checks if Nmap is available
+Le serveur démarre ensuite sur :
+- http://127.0.0.1:8000
 
-### F2. Access the Frontend
-
-The frontend files are located in `frontend/pages/`:
+### Frontend
 
 ```bash
 cd frontend
 python -m http.server 5500
 ```
 
-- Frontend accessible at: `http://localhost:5500`
+Le frontend est accessible sur :
+- http://localhost:5500
 
-### F3. API Documentation
+### Documentation API
 
-Once the backend is running, access interactive documentation:
+Une fois le backend lancé :
+- Swagger UI : http://127.0.0.1:8000/docs
+- ReDoc : http://127.0.0.1:8000/redoc
 
-- **Swagger UI**: `http://127.0.0.1:8000/docs`
-- **ReDoc**: `http://127.0.0.1:8000/redoc`
+## Endpoints principaux
 
-## G. API Endpoints Reference
+| Méthode | Endpoint | Description |
+|---|---|---|
+| POST | `/login` | Authentification utilisateur |
+| GET | `/scan?host={host}` | Lance un scan sur une cible |
+| POST | `/nmap_scan` | Déclenche un scan Nmap en arrière-plan |
+| GET | `/nmap_scan/{job_id}` | Vérifie l’état d’un job |
+| GET | `/history` | Récupère l’historique des scans |
+| GET | `/stats` | Retourne les statistiques générales |
+| GET | `/report` | Télécharge le rapport PDF global |
+| GET | `/report/{scan_id}` | Télécharge le rapport d’un scan précis |
+| DELETE | `/delete_scans/{scan_id}` | Supprime un scan |
+| GET | `/health` | Vérifie l’état du service et de la base |
 
-### G1. Authentication
-- `POST /login` - User login (default: username: `admin`, password: `admin123`)
-  - Returns JWT access token for authenticated requests
+## Base de données
 
-### G2. Scanning Operations
-- `GET /scan?host={hostname}` - Perform security scan on specified host
-- Nmap scanning endpoints for detailed service/version detection
+Le projet utilise SQLite avec la base `audit.db` créée automatiquement au démarrage si elle n’existe pas.
 
-### G3. Reports
-- `GET /report` - Download generated PDF audit report
+Les données principales stockées dans la table `scans` sont :
+- `id`
+- `host`
+- `type`
+- `ports`
+- `risque`
+- `score`
+- `date_scan`
+- `service`
+- `detected_version`
+- `cve`
+- `severity`
+- `description`
 
-### G4. History & Analytics
-- `GET /history` - Retrieve scan history (requires JWT token)
-- `GET /stats` - Get audit statistics and analytics
+## Notes importantes
 
-### G5. Health Checks
-- `GET /` - Application health check
-- `GET /health` - Database and system health status
+- Les identifiants par défaut doivent être modifiés en production.
+- Le secret JWT est actuellement défini dans [backend/auth/auth_handler.py](backend/auth/auth_handler.py).
+- Pour les scans réseau, il faut respecter la législation et les droits d’utilisation.
+- Si Nmap n’est pas disponible, l’application affiche un avertissement au démarrage.
 
-### G6. Logs
-- `GET /logs` - Access system and audit logs
+## Développement
 
-## H. Database
+Pour tester ou développer :
+1. Vérifier que les dépendances sont installées
+2. Lancer le backend en mode développement
+3. Tester les routes via `/docs`
+4. Vérifier les logs dans [backend/logs](backend/logs)
 
-The application uses SQLite database (`audit.db`) for persistent data storage. The database is automatically initialized on first run.
-
-### H1. Main Tables
-
-The `scans` table stores:
-- **id**: Primary key (unique identifier)
-- **host**: Scanned hostname/IP address
-- **ports**: Open ports (JSON format)
-- **risque**: Risk assessment level
-- **score**: Security score (0-100)
-- **date_scan**: Timestamp of scan execution
-
-### H2. Data Flow
-
-1. User initiates scan via API
-2. Scanner queries target host using Nmap
-3. Results stored in SQLite database
-4. Report generated from stored data
-5. Statistics aggregated from historical data
-
-## I. Security Considerations
-
-### I1. Authentication
-- Default credentials: username `admin`, password `admin123`
-- **IMPORTANT**: Change these in production environments
-- JWT tokens expire after 1 hour
-
-### I2. Environment Hardening
-- Change the `SECRET_KEY` in `backend/auth/auth_handler.py` for production
-- Use HTTPS in production (configure via reverse proxy)
-- Implement rate limiting on API endpoints
-- Use environment variables for sensitive configuration
-
-### I3. Nmap Execution
-- Nmap requires appropriate system permissions
-- Network scanning should comply with legal and policy requirements
-- Only scan networks/hosts you own or have explicit permission to scan
-
-## J. Development Guide
-
-### J1. Project Architecture
-
-The application follows a layered architecture:
-- **Routes Layer** (`routes/`): HTTP endpoint definitions
-- **Services Layer** (`services/`): Business logic and operations
-- **Auth Layer** (`auth/`): Authentication and token management
-- **Database Layer** (`database/`): Data persistence
-- **Models Layer** (`models/`): Data structures and schemas
-
-### J2. Adding New Routes
-
-1. Create a new router file in `backend/routes/`
-2. Define endpoints using FastAPI decorators
-3. Import the router in `backend/main.py`
-4. Include it with `app.include_router()`
-
-Example:
-```python
-from fastapi import APIRouter
-router = APIRouter()
-
-@router.get("/new-endpoint")
-def new_endpoint():
-    return {"message": "New endpoint"}
-```
-
-### J3. Adding New Services
-
-1. Create logic in `backend/services/`
-2. Import and use in route handlers
-3. Keep services independent and reusable
-
-### J4. Testing
-
-- Use `test_scanner.py` for scanner functionality testing
-- Test all endpoints via Swagger UI at `/docs`
-- Verify database connectivity and operations
-
-## K. Troubleshooting
-
-### K1. Backend Won't Start
-- Ensure all dependencies are installed: `pip install -r requirements.txt`
-- Check Python version: `python --version` (requires 3.8+)
-- Verify port 8000 is not in use
-
-### K2. Nmap Not Found Error
-- Install Nmap: 
-  - **Windows**: Download from https://nmap.org/download
-  - **Linux**: `sudo apt-get install nmap`
-  - **macOS**: `brew install nmap`
-- Ensure Nmap is in system PATH
-- Verify installation: `nmap --version`
-
-### K3. Database Errors
-- Delete `audit.db` to reset database
-- Ensure write permissions in backend directory
-- Check database initialization in `backend/database/db.py`
-
-### K4. CORS Issues
-- CORS is enabled for all origins in development (see `main.py`)
-- Adjust `allow_origins` for production
-
-### K5. JWT Token Errors
-- Ensure `Authorization: Bearer <token>` header is included
-- Check token expiration
-- Verify token was generated via `/login` endpoint
-
-## L. Frontend Components
-
-Located in `frontend/pages/`:
-
-- **index.html**: Landing page and authentication interface
-- **dashboard.html**: Main dashboard for scan operations and results
-- **history.html**: Historical scan data and statistics visualization
-
-The frontend communicates with the FastAPI backend via REST API calls.
-
-## M. Logs & Analytics
-
-### M1. System Logs
-- Accessible via `GET /logs` endpoint
-- Tracks API operations, scans, and errors
-
-### M2. Logs Analyzer
-- The `logs_analyzer/` module provides log analysis utilities
-- Useful for audit trails and debugging
-
-## N. Future Enhancements
-
-- [ ] Advanced log visualization dashboard
-- [ ] Scheduled scan automation
-- [ ] Multi-user support with role-based access control
-- [ ] Enhanced reporting templates
-- [ ] Real-time scan progress updates via WebSockets
-- [ ] Vulnerability database integration
-- [ ] Export reports in multiple formats (HTML, CSV, XML)
-
-## O. Contributing & Support
-
-### O1. Development Workflow
-1. Create a feature branch from `main`
-2. Implement changes with proper testing
-3. Submit pull requests with clear descriptions
 4. Ensure code follows project conventions
 
 ### O2. Reporting Issues
