@@ -9,6 +9,7 @@ from routes.health import router as health_router
 from routes.nmap_scan import router as nmap_scan_router
 from services.nmap_scanner import is_nmap_available
 from fastapi.middleware.cors import CORSMiddleware
+from routes.delete_scans import router as delete_scans_router
 
 app = FastAPI()
 
@@ -36,7 +37,7 @@ app.include_router(stats_router)
 app.include_router(auth_router)
 app.include_router(health_router)
 app.include_router(nmap_scan_router)
-
+app.include_router(delete_scans_router)
 
 @app.get("/")
 def home():

@@ -1,7 +1,9 @@
 import nmap
 import sqlite3
 from datetime import datetime
+from core.logger import get_logger
 
+logger = get_logger("scanner")
 
 # Known vulnerable versions
 VULNERABLE_VERSIONS = {
@@ -55,11 +57,11 @@ def discover_hosts(network="192.168.1.0/24"):
     Returns:
         Liste des machines trouvées avec IP, hostname et état
     """
-    print(f"[NMAP] Discovering hosts on {network}")
+    logger.info(f"Discovering hosts on {network}")
 
     nm = get_port_scanner()
     if nm is None:
-        print("[NMAP] Skipping discovery: nmap binary not available in PATH")
+        logger.warning("[NMAP] Skipping discovery: nmap binary not available in PATH")
         return []
 
     try:
@@ -73,14 +75,14 @@ def discover_hosts(network="192.168.1.0/24"):
                 "state": nm[host].state()
             })
         
-        print(f"[NMAP] Found {len(hosts_found)} machine(s) on the network")
+        logger.info(f"[NMAP] Found {len(hosts_found)} machine(s) on the network")
         return hosts_found
     
     except nmap.PortScannerError as e:
-        print(f"[NMAP] Discovery error: {e}")
+        logger.error(f"[NMAP] Discovery error: {e}")
         return []
     except Exception as e:
-        print(f"[NMAP] Unexpected error: {e}")
+        logger.error(f"[NMAP] Unexpected error: {e}")
         return []
 
 
@@ -97,7 +99,7 @@ def run_nmap_scan(host, ports_to_scan=None, scan_type="ip"):
     
     nm = get_port_scanner()
 
-    print(f"[NMAP] Scanning {host} on ports {port_string}")
+    logger.info(f"[NMAP] Scanning {host} on ports {port_string}")
 
     if nm is None:
         return {
@@ -109,11 +111,10 @@ def run_nmap_scan(host, ports_to_scan=None, scan_type="ip"):
         }
 
     try:
-        scan_result = nm.scan(hosts=host, ports=port_string, arguments="-sV --version-light -n -Pn -T4 --max-retries 2 --host-timeout 90s")
+        scan_result = nm.scan(hosts=host, ports=port_string, arguments="-sV -Pn -T4 --host-timeout 90s")
         
-        host_data = scan_result.get("scan", {}).get(host, {})
-        
-        if not host_data:
+        all_hosts = nm.all_hosts()
+        if not all_hosts:
             return {
                 "host": host,
                 "error": "Host unreachable",
@@ -121,10 +122,13 @@ def run_nmap_scan(host, ports_to_scan=None, scan_type="ip"):
                 "services_found": [],
                 "vulnerabilities": []
             }
-        
+
+        scanned = all_hosts[0]        
+        host_data = nm[scanned]
+
         services_found = []
         vulnerabilities_found = []
-        
+
         tcp_results = host_data.get("tcp", {})
         
         for port in tcp_results:
@@ -169,7 +173,7 @@ def run_nmap_scan(host, ports_to_scan=None, scan_type="ip"):
             )
         # Save to database
         risk_score, risk_level = calculate_risk_score(services_found, vulnerabilities_found)
-        scan_date = datetime.utcnow().isoformat()  # une seule fois, réutilisé plus bas
+        scan_date = datetime.utcnow().isoformat()
 
         # une ligne par scan
         try:
@@ -204,7 +208,7 @@ def run_nmap_scan(host, ports_to_scan=None, scan_type="ip"):
             conn.commit()
             conn.close()
         except Exception as e:
-            print(f"[NMAP] Database save failed: {e}")
+            logger.error(f"[NMAP] Database save failed: {e}")
         
         return {
             "host": host,
@@ -220,7 +224,7 @@ def run_nmap_scan(host, ports_to_scan=None, scan_type="ip"):
         return {
             "host": host,
             "error": f"Nmap error: {str(e)}. Is Nmap installed?",
-            "scan_date": scan_date
+            "scan_date": datetime.utcnow().isoformat()
         }
     except Exception as e:
         return {
@@ -267,7 +271,7 @@ def get_port_scanner():
             from nmap import nmap as _nmap_module
         except Exception:
             pass
-        print(f"[NMAP] PortScanner unavailable: {e}. Vérifiez que Nmap est installé et accessible dans le PATH.")
+        logger.error(f"[NMAP] PortScanner unavailable: {e}. Vérifiez que Nmap est installé et accessible dans le PATH.")
         return None
 
 

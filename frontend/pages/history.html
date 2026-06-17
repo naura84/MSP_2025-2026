@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Automatic Audit — Scan History</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --blue:#2563eb; --blue-hover:#1d4ed8;
+      --ink:#0f172a; --muted:#64748b;
+      --field-bg:#f1f3f5; --card-border:#e8eaed; --bg:#f6f8fb;
+      --red:#ef4444; --orange:#f97316; --green:#16a34a;
+      --row-bg:#f8fafc;
+    }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:'Inter',-apple-system, BlinkMacSystemFont,'Segoe UI',sans-serif; background:var(--bg); color:var(--ink); min-height:100vh; }
+    .mono { font-family:'JetBrains Mono',ui-monospace,monospace; }
+
+    /* Navbar */
+    .navbar { background:#fff; border-bottom:1px solid var(--card-border); height:64px; display:flex; align-items:center; justify-content:space-between; padding:0 32px; }
+    .nav-brand { display:flex; align-items:center; gap:12px; }
+    .nav-logo { width:40px; height:40px; border-radius:10px; background:var(--blue); display:flex; align-items:center; justify-content:center; }
+    .nav-brand .title { font-size:18px; font-weight:600; line-height:1.1; }
+    .nav-brand .subtitle { font-size:12px; color:var(--muted); }
+    .nav-links { display:flex; align-items:center; gap:8px; }
+    .nav-item { display:inline-flex; align-items:center; gap:8px; padding:8px 16px; border-radius:8px; font-size:14px; font-weight:500; color:var(--ink); background:none; border:none; cursor:pointer; text-decoration:none; font-family:inherit; }
+    .nav-item:hover { background:#f1f5f9; }
+    .nav-item.active { background:var(--blue); color:#fff; }
+    .nav-item.active:hover { background:var(--blue-hover); }
+    .nav-divider { width:1px; height:24px; background:#e2e8f0; margin:0 6px; }
+    .nav-item.logout { color:var(--red); }
+    .nav-item.logout:hover { background:#fef2f2; }
+
+    /* Layout */
+    .container { max-width:1280px; margin:0 auto; padding:32px; }
+    .page-title { font-size:32px; font-weight:700; letter-spacing:-0.02em; }
+    .page-subtitle { margin-top:6px; font-size:16px; color:var(--muted); }
+    .stats-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:24px; margin-top:28px; }
+    .card { background:#fff; border:1px solid var(--card-border); border-radius:14px; padding:24px; box-shadow:0 1px 2px rgba(15,23,42,.04); }
+    .stat-label { font-size:15px; font-weight:500; }
+    .stat-value { font-size:34px; font-weight:600; margin-top:18px; letter-spacing:-0.01em; }
+
+    .section { margin-top:24px; }
+    .section h3 { font-size:18px; font-weight:600; }
+    .section .sub { font-size:14px; color:var(--muted); margin-top:4px; }
+
+    /* Table */
+    .table-wrap { margin-top:18px; overflow-x:auto; }
+    table { width:100%; border-collapse:collapse; }
+    thead th { text-align:left; font-size:13px; font-weight:500; color:var(--muted); padding:10px 14px; border-bottom:1px solid var(--card-border); white-space:nowrap; }
+    thead th.right { text-align:right; }
+    tbody td { padding:14px; border-bottom:1px solid #f1f5f9; font-size:14px; vertical-align:middle; white-space:nowrap; }
+    tbody tr:last-child td { border-bottom:none; }
+    tbody tr:hover { background:var(--row-bg); }
+    .cell-icon { display:inline-flex; align-items:center; gap:7px; color:var(--ink); }
+    .cell-icon svg { color:var(--muted); }
+    .score-num { font-weight:600; margin-right:8px; }
+
+    .type-pill { display:inline-block; font-size:12px; font-weight:500; padding:3px 10px; border:1px solid var(--card-border); border-radius:999px; color:var(--ink); background:#fff; }
+
+    .badge { font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; white-space:nowrap; }
+    .badge-low { background:#dcfce7; color:#16a34a; }
+    .badge-medium { background:#fef9c3; color:#ca8a04; }
+    .badge-high { background:#ffedd5; color:#ea580c; }
+    .badge-critical { background:#fee2e2; color:#dc2626; }
+    .badge-neutral { background:#e2e8f0; color:#475569; }
+
+    .actions { text-align:right; }
+    .dl-btn { display:inline-flex; align-items:center; gap:8px; background:var(--blue); color:#fff; border:none; border-radius:8px; padding:9px 14px; font-size:13px; font-weight:500; font-family:inherit; cursor:pointer; }
+    .dl-btn:hover { background:var(--blue-hover); }
+    .del-btn { background:none; border:none; color:var(--red); cursor:pointer; margin-left:10px; padding:6px; border-radius:6px; vertical-align:middle; }
+    .del-btn:hover { background:#fef2f2; }
+
+    .empty { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; min-height:240px; }
+    .empty .empty-icon { color:#cbd5e1; }
+    .empty .empty-text { margin-top:16px; font-size:15px; color:var(--muted); }
+
+    @media (max-width:980px) {
+      .stats-grid { grid-template-columns:repeat(2,1fr); }
+      .nav-brand .subtitle { display:none; }
+      .container { padding:24px 16px; }
+      .navbar { padding:0 16px; }
+    }
+  </style>
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">
+      <div class="nav-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <div><div class="title">Automatic Audit</div><div class="subtitle">Security Platform</div></div>
+    </div>
+    <div class="nav-links">
+      <a href="dashboard.html" class="nav-item">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>
+        Dashboard
+      </a>
+      <a href="history.html" class="nav-item active">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+        Scan History
+      </a>
+      <div class="nav-divider"></div>
+      <button class="nav-item logout" id="logout-btn">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/></svg>
+        Logout
+      </button>
+    </div>
+  </nav>
+
+  <div class="container">
+    <h1 class="page-title">Scan History</h1>
+    <p class="page-subtitle">View and manage all your security scans</p>
+
+    <div class="stats-grid">
+      <div class="card"><div class="stat-label">Total Scans</div><div class="stat-value" id="stat-total" style="color:var(--ink)">0</div></div>
+      <div class="card"><div class="stat-label">Critical</div><div class="stat-value" id="stat-critical" style="color:var(--red)">0</div></div>
+      <div class="card"><div class="stat-label">High Risk</div><div class="stat-value" id="stat-high" style="color:var(--orange)">0</div></div>
+      <div class="card"><div class="stat-label">Low Risk</div><div class="stat-value" id="stat-low" style="color:var(--green)">0</div></div>
+    </div>
+
+    <div class="card section">
+      <h3>All Scans</h3>
+      <div class="sub">Complete history of security scans</div>
+      <div id="content"></div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = "http://127.0.0.1:8000";
+
+    function sevClass(sev){ const s=(sev||"").toLowerCase();
+      if(s==="critical"||s==="critique")return"badge-critical";
+      if(s==="high"||s==="élevé"||s==="eleve")return"badge-high";
+      if(s==="medium"||s==="moyen")return"badge-medium";
+      if(s==="low"||s==="faible")return"badge-low";
+      return"badge-neutral"; }
+    function sevLabel(sev){ const m={critical:"CRITICAL",critique:"CRITICAL",high:"HIGH","élevé":"HIGH",eleve:"HIGH",medium:"MEDIUM",moyen:"MEDIUM",low:"LOW",faible:"LOW"};
+      const s=(sev||"").toLowerCase(); return m[s]||(sev?sev.toUpperCase():"—"); }
+    function formatDate(iso){ if(!iso)return"—"; const d=new Date(iso); if(isNaN(d))return iso;
+      const p=n=>String(n).padStart(2,"0");
+      return `${p(d.getDate())}/${p(d.getMonth()+1)}/${d.getFullYear()} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+    function esc(s){ const d=document.createElement("div"); d.textContent=s==null?"":String(s); return d.innerHTML; }
+
+    const ICON_CLOCK = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>';
+    const ICON_PORT  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/></svg>';
+    const ICON_VULN  = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
+    const ICON_DL    = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+    const ICON_TRASH = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+
+    const token = () => localStorage.getItem("token");
+    const authHeaders = () => { const t = token(); return t ? { Authorization: `Bearer ${t}` } : {}; };
+
+    function renderEmpty(){
+      document.getElementById("content").innerHTML =
+        `<div class="empty">
+          <svg class="empty-icon" width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <p class="empty-text">No scans yet. Start your first scan from the dashboard.</p>
+        </div>`;
+    }
+
+    function render(scans){
+      // Stats par sévérité
+      const total = scans.length;
+      const count = (lvls) => scans.filter(s => lvls.includes((s.severity||"").toLowerCase())).length;
+      document.getElementById("stat-total").textContent = total;
+      document.getElementById("stat-critical").textContent = count(["critical","critique"]);
+      document.getElementById("stat-high").textContent = count(["high","élevé","eleve"]);
+      document.getElementById("stat-low").textContent = count(["low","faible",""]);  // "" = scan sans vulnérabilité = sûr
+
+      if(!total){ renderEmpty(); return; }
+
+      const rows = scans.map(s => {
+        const ports = (s.ports||"").split(",").filter(Boolean).length;
+        const nbVulns = (s.nb_vulns != null) ? s.nb_vulns : (s.severity ? 1 : 0);
+        const typeLabel = (s.type||"").toUpperCase() || "—";
+        return `<tr>
+          <td class="mono">${esc(s.host)}</td>
+          <td><span class="type-pill">${esc(typeLabel)}</span></td>
+          <td><span class="cell-icon">${ICON_CLOCK}${formatDate(s.date_scan)}</span></td>
+          <td><span class="score-num">${esc(s.score)}</span><span class="badge ${sevClass(s.severity)}">${sevLabel(s.severity)}</span></td>
+          <td><span class="cell-icon">${ICON_PORT}${ports}</span></td>
+          <td><span class="cell-icon">${ICON_VULN}${nbVulns}</span></td>
+          <td class="actions">
+            <button class="dl-btn" onclick="downloadReport(${s.id ?? "null"}, '${esc(s.host)}')">${ICON_DL} Download Report</button>
+            <button class="del-btn" title="Supprimer" onclick="deleteScan(${s.id ?? "null"}, this)">${ICON_TRASH}</button>
+          </td>
+        </tr>`;
+      }).join("");
+
+      document.getElementById("content").innerHTML =
+        `<div class="table-wrap"><table>
+          <thead><tr>
+            <th>Target</th><th>Type</th><th>Date &amp; Time</th><th>Risk Score</th>
+            <th>Open Ports</th><th>Vulnerabilities</th><th class="right">Actions</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table></div>`;
+    }
+
+    async function load(){
+      try{
+        const res = await fetch(`${API_BASE}/history`, { headers: authHeaders() });
+        if(!res.ok){ renderEmpty(); return; }
+        const data = await res.json();
+        render(data.history || []);
+      }catch(_){ renderEmpty(); }
+    }
+
+    function downloadReport(id, host){
+      // Adapte à ta route PDF : par id si dispo, sinon par host
+      const url = (id != null)
+        ? `${API_BASE}/report/${id}`
+        : `${API_BASE}/report?host=${encodeURIComponent(host)}`;
+      window.open(url, "_blank");
+    }
+
+    async function deleteScan(id, btn){
+      if(id == null) return;
+      if(!confirm("Supprimer ce scan ?")) return;
+      try{
+        const res = await fetch(`${API_BASE}/delete_scans/${id}`, { method:"DELETE", headers: authHeaders() });
+        if(res.ok){ load(); }       // on recharge la liste + les stats
+        else { alert("Suppression impossible."); }
+      }catch(_){ alert("Serveur injoignable."); }
+    }
+
+    document.getElementById("logout-btn").addEventListener("click", () => {
+      localStorage.removeItem("token");
+      window.location.href = "index.html";
+    });
+
+    load();
+  </script>
+</body>
+</html>

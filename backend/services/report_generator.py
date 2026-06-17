@@ -1,4 +1,3 @@
-import re
 import sqlite3
 from datetime import datetime
 from xml.sax.saxutils import escape
@@ -113,7 +112,7 @@ def _scan_card(row):
         return Paragraph(f'<font size="7.5" color="#64748b">{label}</font><br/>{escape(str(value))}', META)
     meta = Table([[
         cell("DATE", date_disp),
-        cell("TYPE", "IP" if cell("TYPE", type_short) else "URL"),
+        cell("TYPE", type_short),
         cell("OPEN PORTS", len(ports_list)),
     ]], colWidths=[CONTENT_W / 3.0] * 3)
     meta.setStyle(TableStyle([
@@ -211,14 +210,22 @@ def _page_decoration(canvas, doc):
     canvas.restoreState()
 
 
-def generate_report(db_path="audit.db", output_path="audit_report.pdf", host=None):
-    """Génère un PDF d'audit. Si `host` est fourni, ne rapporte que ce host."""
+def generate_report(db_path="audit.db", output_path="audit_report.pdf", host=None, scan_id=None):
+    """Génère un PDF d'audit.
+
+    - scan_id fourni  -> rapporte uniquement ce scan (prioritaire).
+    - host fourni      -> rapporte tous les scans de cet hôte.
+    - aucun des deux   -> rapporte tous les scans.
+    """
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     query = ("SELECT host, type, ports, risque, score, date_scan, "
              "service, detected_version, cve, severity, description FROM scans")
     params = ()
-    if host:
+    if scan_id is not None:
+        query += " WHERE id = ?"
+        params = (scan_id,)
+    elif host:
         query += " WHERE host = ?"
         params = (host,)
     query += " ORDER BY date_scan DESC"

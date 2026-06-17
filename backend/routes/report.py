@@ -14,3 +14,9 @@ def report():
         media_type='application/pdf', #type du fichier = pdf
         filename='audit_report.pdf'  #nom du fichier
     )
+
+@router.get("/report/{scan_id}")
+def report(scan_id: int):
+    # génère un PDF filtré sur ce scan ;
+    path = generate_report(output_path=f"report_{scan_id}.pdf", scan_id=scan_id)
+    return FileResponse(path, media_type="application/pdf", filename=f"audit-report_{scan_id}.pdf")

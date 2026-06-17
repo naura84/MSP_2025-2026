@@ -24,7 +24,7 @@ def history(credentials: HTTPAuthorizationCredentials = Depends(security)):
     conn = sqlite3.connect("audit.db")
 
     cursor = conn.cursor()
-    cursor.execute("SELECT host, ports, risque, score, date_scan FROM scans")
+    cursor.execute("SELECT id, host, type, ports, risque, score, severity, date_scan FROM scans")
 
     data = cursor.fetchall()
 
@@ -32,13 +32,16 @@ def history(credentials: HTTPAuthorizationCredentials = Depends(security)):
     
     results = []
 
-    for scan in data:
+    for s in data:
         results.append({
-            "host" : scan[0],
-            "ports" : scan[1],
-            "risque" : scan[2],
-            "score" : scan[3],
-            "date_scan" : scan[4]
+            "id": s[0],
+            "host": s[1],
+            "type": s[2],
+            "ports": s[3],
+            "risque": s[4],
+            "score": s[5],
+            "severity": s[6],
+            "date_scan": s[7],
         })
 
     return {"history" : results}
