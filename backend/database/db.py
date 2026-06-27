@@ -16,6 +16,8 @@ cursor.execute("""CREATE TABLE IF NOT EXISTS scans (
                detected_version TEXT,
                cve TEXT,
                severity TEXT,
+               cvss_score REAL,
+               cvss_level TEXT,
                description TEXT
                )"""
 )

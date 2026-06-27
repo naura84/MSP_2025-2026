@@ -1,6 +1,7 @@
 import nmap
 import sqlite3
 from datetime import datetime
+from services.cvss import get_cvss_info
 from core.logger import get_logger
 
 logger = get_logger("scanner")
@@ -185,24 +186,33 @@ def run_nmap_scan(host, ports_to_scan=None, scan_type="ip"):
 
             # Vulnérabilité la plus grave (ou None si scan clean)
             top = pick_top_vulnerability(vulnerabilities_found)
+
             if top:
                 v = top["vulnerability"]
-                top_service     = top.get("service")
-                top_version     = top.get("version")
-                top_cve         = v.get("cve")
-                top_severity    = v.get("severity")
+
+                top_service = top.get("service")
+                top_version = top.get("version")
+                top_cve = v.get("cve")
+                top_cvss_score = v.get("cvss_score")
+                top_cvss_level = v.get("cvss_level")
+                top_severity = v.get("severity")
                 top_description = v.get("description")
             else:
-                top_service = top_version = top_cve = top_severity = top_description = None
-
+                top_service = None
+                top_version = None
+                top_cve = None
+                top_cvss_score = None
+                top_cvss_level = None
+                top_severity = None
+                top_description = None
             cursor.execute(
                 """
                 INSERT INTO scans (host, type, ports, risque, score, date_scan,
-                                   service, detected_version, cve, severity, description)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                                   service, detected_version, cve, cvss_score, cvss_level, severity, description)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (host, scan_type, port_string_db, risk_level, risk_score, scan_date,
-                 top_service, top_version, top_cve, top_severity, top_description)
+                 top_service, top_version, top_cve, top_cvss_score, top_cvss_level, top_severity, top_description)
             )
 
             conn.commit()
@@ -217,7 +227,16 @@ def run_nmap_scan(host, ports_to_scan=None, scan_type="ip"):
             "services_found": services_found,
             "vulnerabilities": vulnerabilities_found,
             "risk_score": risk_score,
-            "risk_level": risk_level
+            "risk_level": risk_level,
+            "top_vulnerability": {
+                "service": top_service,
+                "version": top_version,
+                "cve": top_cve,
+                "cvss_score": top_cvss_score,
+                "cvss_level": top_cvss_level,
+                "severity": top_severity,
+                "description": top_description
+            }
         }
     
     except nmap.PortScannerError as e:
@@ -245,6 +264,8 @@ def check_version_vulnerability(service_name, product, version):
     for vuln_service, vuln_info in VULNERABLE_VERSIONS.items():
         if vuln_service in product_lower or vuln_service in service_name.lower():
             if is_version_vulnerable(version, vuln_info["max_safe"]):
+                cvss_info = get_cvss_info(vuln_info["cve"])
+
                 return {
                     "service": service_name,
                     "product": product,
@@ -252,10 +273,11 @@ def check_version_vulnerability(service_name, product, version):
                     "safe_version": vuln_info["max_safe"],
                     "cve": vuln_info["cve"],
                     "severity": vuln_info["severity"],
-                    "description": vuln_info["description"]
+                    "description": vuln_info["description"],
+                    "cvss_score": cvss_info["cvss_score"],
+                    "cvss_level": cvss_info["cvss_level"]
                 }
-    
-    return None
+            return None
 
 
 def get_port_scanner():
@@ -314,34 +336,47 @@ def is_version_vulnerable(detected_version, max_safe_version):
 
 def calculate_risk_score(services_found, vulnerabilities_found):
     """
-    Calculate risk score from 0 to 100.
-    Start at 100, subtract based on open services and vulnerabilities.
+    Calcule un score de sécurité sur 100 à partir des scores CVSS.
+    
+    Logique :
+    - aucune vulnérabilité -> score 100
+    - sinon on prend la moyenne des CVSS détectés
+    - plus le CVSS moyen est élevé, plus le score sécurité baisse
     """
-    
-    score = 100
-    
-    for service in services_found:
-        if not service.get("vulnerable", False):
-            score -= 5
-    
-    severity_weights = {
-        "critical": 25,
-        "high": 15,
-        "medium": 10,
-        "low": 5
-    }
-    
+
+    # Si aucune vulnérabilité détectée
+    if not vulnerabilities_found:
+        return 100, "faible"
+
+    cvss_scores = []
+
     for vuln in vulnerabilities_found:
-        severity = vuln.get("vulnerability", {}).get("severity", "low")
-        score -= severity_weights.get(severity, 5)
-    
-    score = max(0, min(100, score))
-    
-    if score >= 80:
-        level = "faible"
-    elif score >= 50:
-        level = "moyen"
+        cvss = vuln.get("vulnerability", {}).get("cvss_score", 0)
+
+        # sécurité au cas où la valeur n'existe pas
+        if isinstance(cvss, (int, float)):
+            cvss_scores.append(cvss)
+
+    # Si jamais aucune vulnérabilité n'a de CVSS exploitable
+    if not cvss_scores:
+        return 100, "faible"
+
+    average_cvss = sum(cvss_scores) / len(cvss_scores)
+
+    # Conversion en score de sécurité sur 100
+    security_score = round(100 - (average_cvss * 10))
+
+    # On borne entre 0 et 100
+    security_score = max(0, min(100, security_score))
+
+    # Niveau de risque
+    if average_cvss >= 9.0:
+        risk_level = "critique"
+    elif average_cvss >= 7.0:
+        risk_level = "élevé"
+    elif average_cvss >= 4.0:
+        risk_level = "moyen"
     else:
-        level = "élevé"
-    
-    return score, level
+        risk_level = "faible"
+
+    return security_score, risk_level

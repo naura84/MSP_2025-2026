@@ -78,7 +78,7 @@ def _badge(label, bg, fg, font_size=8.5):
 
 
 def _scan_card(row):
-    host, scan_type, ports, risque, score, date_scan, service, version, cve, severity, description = row
+    host, scan_type, ports, risque, score, date_scan, service, version, cve, cvss_score, cvss_level, severity, description = row
 
     t = (scan_type or "").lower()
     tag = "IP ADDRESS" if t == "ip" else "URL / DOMAIN"
@@ -89,7 +89,6 @@ def _scan_card(row):
 
     flow = []
 
-    # 1) Bandeau foncé : hôte + badge de risque
     b_bg, b_fg, b_lbl = sev_style(risque)
     host_para = Paragraph(
         f'{escape(str(host or "—"))}<br/>'
@@ -107,7 +106,6 @@ def _scan_card(row):
     ]))
     flow.append(header)
 
-    # 2) Bande d'infos : date / type / nb de ports
     def cell(label, value):
         return Paragraph(f'<font size="7.5" color="#64748b">{label}</font><br/>{escape(str(value))}', META)
     meta = Table([[
@@ -128,7 +126,7 @@ def _scan_card(row):
     flow.append(meta)
     flow.append(Spacer(1, 10))
 
-    # 3) Ports ouverts
+    # Ports ouverts
     flow.append(Paragraph("Open Ports", SEC))
     flow.append(Spacer(1, 4))
     ports_disp = "&nbsp;&nbsp;&bull;&nbsp;&nbsp;".join(
@@ -144,23 +142,42 @@ def _scan_card(row):
     ]))
     flow.append(ports_box)
 
-    # 4) Vulnérabilité (la plus grave enregistrée), si présente
-    if cve or description or severity:
+    # Vulnérabilité (la plus grave enregistrée), si présente
+    if cve or description or severity or cvss_score or cvss_level:
         flow.append(Spacer(1, 12))
         flow.append(Paragraph("Top Vulnerability", SEC))
         flow.append(Spacer(1, 4))
-
-        s_bg, s_fg, s_lbl = sev_style(severity)
+    
+        # Couleur du badge basée sur la sévérité ou le niveau CVSS
+        severity_ref = severity or cvss_level
+        s_bg, s_fg, s_lbl = sev_style(severity_ref)
+    
         title = (service or "Vulnerability")
         if version and version not in ("", "Unknown"):
             title = f"{title} {version}"
+    
+        # Texte sous le titre : CVE + CVSS
+        vuln_meta = f"{escape(str(cve or '—'))}"
+    
+        if cvss_score is not None and cvss_level:
+            vuln_meta += f" | CVSS {cvss_score} ({cvss_level})"
+        elif cvss_score is not None:
+            vuln_meta += f" | CVSS {cvss_score}"
+        elif cvss_level:
+            vuln_meta += f" | {cvss_level}"
+    
         v_badge = _badge(s_lbl, s_bg, s_fg)
         v_badge.hAlign = "RIGHT"
+    
         v_head = Table([[
-            Paragraph(f'{escape(str(title))}'
-                      f'<br/><font size="8" color="#64748b">{escape(str(cve or "—"))}</font>', VTITLE),
+            Paragraph(
+                f'{escape(str(title))}'
+                f'<br/><font size="8" color="#64748b">{escape(vuln_meta)}</font>',
+                VTITLE
+            ),
             v_badge,
         ]], colWidths=[CONTENT_W * 0.74 - 28, CONTENT_W * 0.26 - 28])
+    
         v_head.setStyle(TableStyle([
             ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
             ("LEFTPADDING", (0, 0), (-1, -1), 0),
@@ -168,21 +185,23 @@ def _scan_card(row):
             ("TOPPADDING", (0, 0), (-1, -1), 0),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
         ]))
+    
         inner = [v_head]
+    
         if description:
             inner.append(Spacer(1, 6))
             inner.append(Paragraph(escape(str(description)), BODY))
+    
         vuln_box = Table([[inner]], colWidths=[CONTENT_W])
         vuln_box.setStyle(TableStyle([
             ("BACKGROUND", (0, 0), (-1, -1), ROW_BG),
-            ("LINEBEFORE", (0, 0), (0, -1), 3, s_fg),  # liseré coloré à gauche
+            ("LINEBEFORE", (0, 0), (0, -1), 3, s_fg),
             ("LEFTPADDING", (0, 0), (-1, -1), 14),
             ("RIGHTPADDING", (0, 0), (-1, -1), 14),
             ("TOPPADDING", (0, 0), (-1, -1), 12),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
         ]))
         flow.append(vuln_box)
-
     return KeepTogether(flow)
 
 
@@ -220,7 +239,8 @@ def generate_report(db_path="audit.db", output_path="audit_report.pdf", host=Non
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     query = ("SELECT host, type, ports, risque, score, date_scan, "
-             "service, detected_version, cve, severity, description FROM scans")
+             "service, detected_version, cve, cvss_score, cvss_level, severity, description "
+             "FROM scans")
     params = ()
     if scan_id is not None:
         query += " WHERE id = ?"

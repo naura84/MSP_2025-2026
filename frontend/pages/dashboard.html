@@ -115,6 +115,7 @@
     .vuln-divider { height:1px; background:#e5e7eb; margin:14px 0; }
     .vuln-block + .vuln-block { margin-top:12px; }
     .vuln-block .lbl { font-size:13px; font-weight:500; }
+    .vuln-badges { display:flex; gap:8px; align-items:center; white-space:nowrap; }
     .vuln-block .txt { font-size:14px; color:#475569; margin-top:3px; line-height:1.5; }
 
     /* Badges */
@@ -127,6 +128,10 @@
     .score-badge { font-family:'JetBrains Mono',monospace; font-size:12px; font-weight:500; padding:3px 9px; border-radius:8px; }
 
     .hidden { display:none; }
+
+    .ai-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .ai-output { margin-top:16px; font-size:14px; line-height:1.6; color:#334155; white-space:pre-wrap; }
+    .ai-disclaimer { margin-top:14px; font-size:12px; color:var(--muted); font-style:italic; }
 
     @media (max-width:980px) {
       .stats-grid { grid-template-columns:1fr; }
@@ -286,6 +291,20 @@
             <p class="section-desc">Security issues detected during the scan</p>
             <div id="vulns-list"></div>
           </div>
+          <div class="card" style="margin-top:24px;">
+            <div class="ai-head">
+              <div>
+                <h3 class="section-title">AI Recommendations</h3>
+                <p class="section-desc">Generated locally from this scan</p>
+              </div>
+              <button type="button" class="download-btn" id="ai-btn" onclick="generateAdvice()">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/></svg>
+                Generate
+              </button>
+            </div>
+            <div id="ai-output" class="ai-output hidden"></div>
+            <p class="ai-disclaimer hidden" id="ai-disclaimer">Recommandations générées automatiquement — à valider par un expert.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -414,6 +433,8 @@
     function renderResult(data, target, type) {
       document.getElementById("results-empty").classList.add("hidden");
       document.getElementById("results").classList.remove("hidden");
+      document.getElementById("ai-output").classList.add("hidden");
+      document.getElementById("ai-disclaimer").classList.add("hidden");
 
       const services = data.services_found || [];
       const vulns = data.vulnerabilities || [];
@@ -454,6 +475,10 @@
         const v = item.vulnerability || {};
         const title = (v.product && v.product !== "Unknown") ? v.product
                       : `${(item.service || "Service")} vulnerability`;
+        const cvss = (v.cvss_score != null && v.cvss_score !== "") ? v.cvss_score : null;
+        const cvssBadge = cvss != null
+          ? `<span class="badge ${sevClass(v.cvss_level)}">CVSS ${esc(cvss)}</span>`
+          : "";
         const remediation = v.remediation
           ? `<div class="vuln-block"><div class="lbl">Remediation:</div><div class="txt">${esc(v.remediation)}</div></div>`
           : "";
@@ -461,7 +486,7 @@
             <div class="vuln-top">
               <div><div class="vuln-title">${esc(title)}</div>
               <div class="vuln-cve mono">${esc(v.cve || "—")}</div></div>
-              <span class="badge ${sevClass(v.severity)}">${sevLabel(v.severity)}</span>
+              <span class="vuln-badges">${cvssBadge}<span class="badge ${sevClass(v.severity)}">${sevLabel(v.severity)}</span></span>
             </div>
             <div class="vuln-divider"></div>
             <div class="vuln-block"><div class="lbl">Description:</div><div class="txt">${esc(v.description || "—")}</div></div>
@@ -470,6 +495,39 @@
       }).join("") || `<p class="recent-empty">No vulnerabilities detected.</p>`;
 
       loadHistory();
+    }
+
+    async function generateAdvice() {
+      if (!lastScan) return;
+      const btn = document.getElementById("ai-btn");
+      const out = document.getElementById("ai-output");
+      const disc = document.getElementById("ai-disclaimer");
+
+      btn.disabled = true;
+      const original = btn.innerHTML;
+      btn.textContent = "Generating…";
+      out.classList.remove("hidden");
+      out.textContent = "Analyse en cours… (le premier appel peut être plus lent)";
+
+      try {
+        const res = await fetch(`${API_BASE}/recommendations`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            ...(localStorage.getItem("token") ? { Authorization: `Bearer ${localStorage.getItem("token")}` } : {})
+          },
+          body: JSON.stringify({ scan_result: lastScan }),
+        });
+        const data = await res.json();
+        if (data.error) { out.textContent = data.error; return; }
+        out.textContent = data.recommendations || "Aucune recommandation générée.";
+        disc.classList.remove("hidden");
+      } catch (_) {
+        out.textContent = "Service IA injoignable. Vérifie qu'Ollama tourne.";
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+      }
     }
 
     // ─── Recent scans ───
