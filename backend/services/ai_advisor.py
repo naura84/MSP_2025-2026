@@ -53,7 +53,7 @@ Réponds directement, sans préambule."""
             "prompt": prompt,
             "stream": False,
             "options": {"num_predict": 400}
-        }, timeout=300)
+        }, timeout=1200)
         response.raise_for_status()
         text = response.json().get("response", "").strip()
         logger.info(f"AI recommendations generated for {facts['host']}")

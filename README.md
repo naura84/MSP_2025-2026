@@ -1,47 +1,50 @@
-# MSP 2025-2026 - Outil d’audit et de scan réseau
+# MSP 2025-2026 - Network Audit and Scan Tool
 
-Ce projet est une application web de sécurité qui permet de lancer des scans réseau, d’analyser les résultats, d’afficher l’historique des audits et de générer des rapports PDF. L’architecture est basée sur un backend FastAPI et une interface HTML/JavaScript.
+This project is a security web application that allows users to launch network scans, analyze results, view audit history, and generate PDF reports. The architecture is based on a FastAPI backend and HTML/JavaScript frontend.
 
-## Fonctionnalités principales
+## 1. Main Features
 
-- Authentification via JWT avec identifiants par défaut (`admin` / `admin123`)
-- Scan de hôte via l’API `/scan`
-- Scan avancé via Nmap avec support des types `ip` et `url`
-- Suivi des scans en tâche de fond via `/nmap_scan` et `/nmap_scan/{job_id}`
-- Historique des résultats stockés dans une base SQLite
-- Statistiques globales sur les scans
-- Génération de rapports PDF
-- Suppression d’un scan spécifique
-- Vérification de l’état de la base de données et du service
+- JWT authentication with default credentials (`admin` / `admin123`)
+- Host scanning through the `/scan` endpoint
+- Advanced scanning with Nmap supporting `ip` and `url` inputs
+- Background scan tracking through `/nmap_scan` and `/nmap_scan/{job_id}`
+- Scan history stored in a SQLite database
+- Global scan statistics
+- PDF report generation
+- AI-based security recommendations through an integrated advisor module
+- Deletion of a specific scan entry
+- Database and service health verification
 
-## Structure du projet
+## 2. Project Structure
 
 ```text
 MSP_2025-2026/
 ├── backend/
 │   ├── auth/
-│   │   └── auth_handler.py       # création et vérification des tokens JWT
+│   │   └── auth_handler.py       # JWT token creation and validation
 │   ├── core/
-│   │   └── logger.py             # configuration des logs
+│   │   └── logger.py             # logging configuration
 │   ├── database/
-│   │   └── db.py                 # création de la base SQLite audit.db
+│   │   └── db.py                 # SQLite database initialization
 │   ├── logs/
-│   │   └── audit.log             # journal d’audit
+│   │   └── audit.log             # audit log file
 │   ├── routes/
 │   │   ├── auth.py               # POST /login
 │   │   ├── health.py             # GET /health
 │   │   ├── scan.py               # GET /scan
-│   │   ├── nmap_scan.py          # POST /nmap_scan + suivi de job
+│   │   ├── nmap_scan.py          # POST /nmap_scan and job tracking
 │   │   ├── history.py            # GET /history
 │   │   ├── stats.py              # GET /stats
-│   │   ├── report.py             # GET /report et /report/{scan_id}
-│   │   └── delete_scans.py       # DELETE /delete_scans/{scan_id}
+│   │   ├── report.py             # GET /report and /report/{scan_id}
+│   │   ├── delete_scans.py       # DELETE /delete_scans/{scan_id}
+│   │   └── ai_advi.py            # POST /recommendations for AI advice
 │   ├── services/
-│   │   ├── scanner.py            # logique de scan classique
-│   │   ├── nmap_scanner.py       # intégration Nmap et évaluation des risques
-│   │   ├── report_generator.py   # génération des PDF
-│   │   └── test_scanner.py       # script de test manuel
-│   └── main.py                   # point d’entrée FastAPI
+│   │   ├── scanner.py            # standard scan logic
+│   │   ├── nmap_scanner.py       # Nmap integration and risk evaluation
+│   │   ├── report_generator.py   # PDF generation
+│   │   ├── ai_advisor.py         # AI recommendations based on scan results
+│   │   └── test_scanner.py       # manual test script
+│   └── main.py                   # FastAPI entry point
 ├── frontend/
 │   └── pages/
 │       ├── index.html
@@ -50,76 +53,79 @@ MSP_2025-2026/
 └── requirements.txt
 ```
 
-## Stack technique
+## 3. Technical Stack
 
-- Backend : FastAPI + Uvicorn
-- Authentification : JWT (python-jose)
-- Scan réseau : Nmap via `python-nmap`
-- Génération de rapports : ReportLab
-- Base de données : SQLite
-- Frontend : pages HTML statiques
+- Backend: FastAPI + Uvicorn
+- Authentication: JWT (python-jose)
+- Network scanning: Nmap via `python-nmap`
+- Report generation: ReportLab
+- AI recommendations: Ollama via HTTP requests
+- Database: SQLite
+- Frontend: static HTML pages
 
-## Prérequis
+## 4. Prerequisites
 
 - Python 3.10+
 - `pip`
-- Nmap installé et disponible dans le `PATH`
+- Nmap installed and available in the `PATH`
+- Ollama installed and running locally for AI recommendations
 - Git
 
-## Installation
+## 5. Installation
 
 ```bash
 pip install -r requirements.txt
 ```
 
-## Lancer l’application
+## 6. Running the Application
 
-### Backend
+### 6.1 Backend
 
 ```bash
 cd backend
 python -m uvicorn main:app --reload
 ```
 
-Le serveur démarre ensuite sur :
+The server will be available at:
 - http://127.0.0.1:8000
 
-### Frontend
+### 6.2 Frontend
 
 ```bash
 cd frontend
 python -m http.server 5500
 ```
 
-Le frontend est accessible sur :
+The frontend will be available at:
 - http://localhost:5500
 
-### Documentation API
+### 6.3 API Documentation
 
-Une fois le backend lancé :
-- Swagger UI : http://127.0.0.1:8000/docs
-- ReDoc : http://127.0.0.1:8000/redoc
+Once the backend is running:
+- Swagger UI: http://127.0.0.1:8000/docs
+- ReDoc: http://127.0.0.1:8000/redoc
 
-## Endpoints principaux
+## 7. Main Endpoints
 
-| Méthode | Endpoint | Description |
+| Method | Endpoint | Description |
 |---|---|---|
-| POST | `/login` | Authentification utilisateur |
-| GET | `/scan?host={host}` | Lance un scan sur une cible |
-| POST | `/nmap_scan` | Déclenche un scan Nmap en arrière-plan |
-| GET | `/nmap_scan/{job_id}` | Vérifie l’état d’un job |
-| GET | `/history` | Récupère l’historique des scans |
-| GET | `/stats` | Retourne les statistiques générales |
-| GET | `/report` | Télécharge le rapport PDF global |
-| GET | `/report/{scan_id}` | Télécharge le rapport d’un scan précis |
-| DELETE | `/delete_scans/{scan_id}` | Supprime un scan |
-| GET | `/health` | Vérifie l’état du service et de la base |
+| POST | `/login` | User authentication |
+| GET | `/scan?host={host}` | Launches a scan against a target |
+| POST | `/nmap_scan` | Starts a background Nmap scan |
+| GET | `/nmap_scan/{job_id}` | Checks the status of a job |
+| POST | `/recommendations` | Generates AI-based security recommendations from scan results |
+| GET | `/history` | Retrieves scan history |
+| GET | `/stats` | Returns overall statistics |
+| GET | `/report` | Downloads the global PDF report |
+| GET | `/report/{scan_id}` | Downloads the report for a specific scan |
+| DELETE | `/delete_scans/{scan_id}` | Deletes a scan |
+| GET | `/health` | Checks the service and database status |
 
-## Base de données
+## 8. Database
 
-Le projet utilise SQLite avec la base `audit.db` créée automatiquement au démarrage si elle n’existe pas.
+The project uses SQLite with the `audit.db` database, which is created automatically at startup if it does not already exist.
 
-Les données principales stockées dans la table `scans` sont :
+The main fields stored in the `scans` table are:
 - `id`
 - `host`
 - `type`
@@ -133,39 +139,32 @@ Les données principales stockées dans la table `scans` sont :
 - `severity`
 - `description`
 
-## Notes importantes
+## 9. Important Notes
 
-- Les identifiants par défaut doivent être modifiés en production.
-- Le secret JWT est actuellement défini dans [backend/auth/auth_handler.py](backend/auth/auth_handler.py).
-- Pour les scans réseau, il faut respecter la législation et les droits d’utilisation.
-- Si Nmap n’est pas disponible, l’application affiche un avertissement au démarrage.
+- Default credentials should be changed in production.
+- The JWT secret is currently defined in [backend/auth/auth_handler.py](backend/auth/auth_handler.py).
+- AI recommendations require a running local Ollama service and a compatible model.
+- Network scanning must comply with local laws and authorization requirements.
+- If Nmap is not available, the application will display a warning at startup.
 
-## Développement
+## 10. Development
 
-Pour tester ou développer :
-1. Vérifier que les dépendances sont installées
-2. Lancer le backend en mode développement
-3. Tester les routes via `/docs`
-4. Vérifier les logs dans [backend/logs](backend/logs)
+To test or develop the project:
+1. Verify that the dependencies are installed.
+2. Start the backend in development mode.
+3. Test the routes through `/docs`.
+4. Check the logs in [backend/logs](backend/logs).
 
-4. Ensure code follows project conventions
+## 11. License and Legal Notice
 
-### O2. Reporting Issues
-- Describe the issue clearly
-- Include steps to reproduce
-- Provide relevant log outputs
-- Specify your environment (OS, Python version)
-
-## P. License & Legal
-
-This project is developed for educational purposes in a Professional Situation (2025-2026) context. 
+This project is developed for educational purposes in a professional context for 2025-2026.
 
 **Legal Notice**: Network scanning can be illegal or unethical if performed without explicit authorization. Always:
-- Obtain proper authorization before scanning any network or host
-- Comply with applicable laws and regulations in your jurisdiction
-- Use this tool responsibly for legitimate security testing only
-- Review your organization's security policies
+- Obtain proper authorization before scanning any network or host.
+- Comply with applicable laws and regulations in your jurisdiction.
+- Use this tool responsibly for legitimate security testing only.
+- Review your organization’s security policies.
 
 ---
 
-**Last Updated**: 2026-06-13
+**Last Updated**: 2026-07-04
