@@ -2,7 +2,7 @@
 
 This project is a security web application that allows users to launch network scans, analyze results, view audit history, and generate PDF reports. The architecture is based on a FastAPI backend and HTML/JavaScript frontend.
 
-## 1. Main Features
+## 1. Key Features
 
 - JWT authentication with default credentials (`admin` / `admin123`)
 - Host scanning through the `/scan` endpoint
@@ -155,7 +155,19 @@ To test or develop the project:
 3. Test the routes through `/docs`.
 4. Check the logs in [backend/logs](backend/logs).
 
-## 11. License and Legal Notice
+## 11. Engineering Challenges
+
+- Designing an asynchronous scan workflow
+
+- Computing dynamic risk scores
+
+- Integrating AI recommendations without slowing scans
+
+- Detecting vulnerable versions through CVE mapping
+
+- Structuring a layered FastAPI architecture
+
+## 12. License and Legal Notice
 
 This project is developed for educational purposes in a professional context for 2025-2026.
 
@@ -167,4 +179,4 @@ This project is developed for educational purposes in a professional context for
 
 ---
 
-**Last Updated**: 2026-07-04
+**Last Updated**: 2026-07-15
