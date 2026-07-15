@@ -18,7 +18,7 @@ This project is a security web application that allows users to launch network s
 ## 2. Project Structure
 
 ```text
-MSP_2025-2026/
+AI-Powered Network Security Audit Platform/
 ├── backend/
 │   ├── auth/
 │   │   └── auth_handler.py       # JWT token creation and validation
