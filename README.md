@@ -1,4 +1,4 @@
-# MSP 2025-2026 - Network Audit and Scan Tool
+# AI-Powered Network Security Audit Platform
 
 This project is a security web application that allows users to launch network scans, analyze results, view audit history, and generate PDF reports. The architecture is based on a FastAPI backend and HTML/JavaScript frontend.
 
