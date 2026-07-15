@@ -1,6 +1,6 @@
 # AI-Powered Network Security Audit Platform
 
-This project is a security web application that allows users to launch network scans, analyze results, view audit history, and generate PDF reports. The architecture is based on a FastAPI backend and HTML/JavaScript frontend.
+This project is an AI-assisted network security audit platform designed to automate vulnerability discovery, risk prioritization and remediation recommendations. It combines FastAPI, Nmap and local LLM inference (Ollama) to produce actionable security reports.
 
 ## 1. Key Features
 
